@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8"><title>11 검색 · 딥워크</title><link rel="stylesheet" href="tokens.css">
+<style>
+body { background: var(--gray-100); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+.back-link { position: fixed; top: 20px; left: 20px; font-size: 13px; color: var(--gray-600); padding: 8px 14px; background: white; border-radius: var(--r-full); box-shadow: var(--shadow-sm); z-index: 10; }
+.window { width: 1100px; height: 760px; background: white; border-radius: var(--r-xl); overflow: hidden; box-shadow: var(--shadow-xl); display: flex; flex-direction: column; position: relative; }
+
+.blurred-bg { position: absolute; inset: 36px 0 0 0; background: var(--gray-50); }
+.blurred-bg::before { content: ''; position: absolute; inset: 0; background: repeating-linear-gradient(0deg, transparent, transparent 40px, rgba(0,0,0,0.02) 40px, rgba(0,0,0,0.02) 80px); opacity: 0.5; }
+
+.overlay { position: absolute; inset: 36px 0 0 0; background: rgba(25, 31, 40, 0.4); backdrop-filter: blur(8px); display: flex; align-items: flex-start; justify-content: center; padding-top: 80px; }
+
+.search-modal { width: 720px; background: white; border-radius: var(--r-xl); box-shadow: var(--shadow-xl); overflow: hidden; display: flex; flex-direction: column; max-height: 580px; }
+
+.search-top { padding: 8px; border-bottom: 1px solid var(--gray-100); }
+.search-box { position: relative; display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: var(--gray-50); border-radius: var(--r-md); }
+.search-box svg { color: var(--gray-500); }
+.search-box input { flex: 1; border: none; background: transparent; font-size: 16px; outline: none; letter-spacing: -0.01em; }
+.search-kbd { font-family: var(--font-mono); background: white; border: 1px solid var(--gray-200); border-radius: var(--r-xs); padding: 2px 6px; font-size: 10px; font-weight: 600; color: var(--gray-600); }
+
+.tabs { display: flex; gap: 4px; padding: 8px 16px 4px; }
+.tab { display: flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px; border-radius: var(--r-full); font-size: 12px; font-weight: 600; color: var(--gray-600); background: none; border: none; cursor: pointer; }
+.tab.active { background: var(--gray-900); color: white; }
+.tab .count { font-size: 11px; opacity: 0.7; }
+.tab:hover:not(.active) { background: var(--gray-100); }
+
+.filter-row { display: flex; gap: 10px; padding: 8px 16px 12px; align-items: center; font-size: 11px; color: var(--gray-600); border-bottom: 1px solid var(--gray-100); }
+.f-chip { display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; background: var(--gray-100); border-radius: var(--r-full); font-size: 11px; font-weight: 500; cursor: pointer; }
+.f-chip.active { background: var(--brand-primary-light); color: var(--brand-primary); }
+
+.results { flex: 1; overflow-y: auto; padding: 6px 8px; }
+.result-group-label { padding: 12px 14px 6px; font-size: 11px; font-weight: 700; color: var(--gray-500); letter-spacing: 0.04em; text-transform: uppercase; }
+
+.result-item { display: flex; gap: 12px; padding: 10px 14px; border-radius: var(--r-sm); cursor: pointer; margin-bottom: 2px; }
+.result-item:hover, .result-item.focused { background: var(--brand-primary-subtle); }
+.r-avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 12px; font-weight: 700; flex-shrink: 0; }
+.r-avatar.a { background: linear-gradient(135deg, #FFB26B, #F59E0B); }
+.r-avatar.b { background: linear-gradient(135deg, #60E0B0, #00C471); }
+.r-avatar.c { background: linear-gradient(135deg, #A78BFA, #7F77DD); }
+.r-avatar.g { background: var(--gray-200); color: var(--gray-700); }
+.r-body { flex: 1; min-width: 0; }
+.r-top { display: flex; gap: 8px; align-items: baseline; margin-bottom: 2px; }
+.r-from { font-size: 12px; font-weight: 600; color: var(--gray-900); }
+.r-room { font-size: 11px; color: var(--gray-500); }
+.r-time { font-size: 11px; color: var(--gray-500); margin-left: auto; flex-shrink: 0; }
+.r-text { font-size: 13px; color: var(--gray-700); line-height: 1.45; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.r-text mark { background: var(--warning-light); color: #945300; padding: 0 2px; border-radius: 2px; font-weight: 600; }
+.r-tag { display: inline-flex; align-items: center; height: 18px; padding: 0 6px; border-radius: var(--r-xs); font-size: 10px; font-weight: 600; margin-right: 6px; }
+
+.foot-help { padding: 10px 16px; background: var(--gray-50); border-top: 1px solid var(--gray-100); display: flex; justify-content: space-between; font-size: 11px; color: var(--gray-600); }
+.foot-help kbd { font-family: var(--font-mono); background: white; border: 1px solid var(--gray-200); border-radius: 3px; padding: 1px 4px; font-size: 10px; margin: 0 2px; }
+.foot-help .grp { display: flex; gap: 14px; }
+</style></head>
+<body>
+<a href="index.html" class="back-link">← 전체 화면</a>
+<div class="window">
+  <div class="window-chrome"><div class="window-controls"><button class="window-btn close"></button><button class="window-btn min"></button><button class="window-btn max"></button></div></div>
+  <div class="blurred-bg"></div>
+  <div class="overlay">
+    <div class="search-modal">
+      <div class="search-top">
+        <div class="search-box">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="8" cy="8" r="5"/><path d="M14 14l-3-3"/></svg>
+          <input value="성수" autofocus>
+          <span class="search-kbd">⌘K</span>
+        </div>
+      </div>
+
+      <div class="tabs">
+        <button class="tab active">전체 <span class="count">14</span></button>
+        <button class="tab">메시지 <span class="count">8</span></button>
+        <button class="tab">🖼️ 이미지 <span class="count">3</span></button>
+        <button class="tab">🔗 링크 <span class="count">3</span></button>
+      </div>
+
+      <div class="filter-row">
+        <span>기간</span>
+        <div class="f-chip active">최근 30일</div>
+        <div class="f-chip">전체</div>
+        <span style="margin-left:12px">보낸 사람</span>
+        <div class="f-chip">전체</div>
+      </div>
+
+      <div class="results">
+        <div class="result-group-label">오늘</div>
+        <div class="result-item focused">
+          <div class="r-avatar a">민</div>
+          <div class="r-body">
+            <div class="r-top"><span class="r-from">민수</span><span class="r-room">· 1:1</span><span class="r-time">09:24</span></div>
+            <div class="r-text"><span class="r-tag" style="background:var(--tone-share-bg);color:#1E5FC0">📎</span>이 가게 한번 가보자 — 센터포크 <mark>성수</mark>점이야</div>
+          </div>
+        </div>
+        <div class="result-item">
+          <div class="r-avatar a">민</div>
+          <div class="r-body">
+            <div class="r-top"><span class="r-from">민수</span><span class="r-room">· 1:1</span><span class="r-time">08:44</span></div>
+            <div class="r-text">장소는 강남이나 <mark>성수</mark> 둘 중에 골라줘</div>
+          </div>
+        </div>
+
+        <div class="result-group-label">이번 주</div>
+        <div class="result-item">
+          <div class="r-avatar c">준</div>
+          <div class="r-body">
+            <div class="r-top"><span class="r-from">준호</span><span class="r-room">· 1:1</span><span class="r-time">수 19:10</span></div>
+            <div class="r-text">금요일 <mark>성수</mark>에서 저녁 어때? 거기 와인바 예약 가능함</div>
+          </div>
+        </div>
+        <div class="result-item">
+          <div class="r-avatar g">3</div>
+          <div class="r-body">
+            <div class="r-top"><span class="r-from">지은</span><span class="r-room">· 대학 동기방</span><span class="r-time">화 21:02</span></div>
+            <div class="r-text"><span class="r-tag" style="background:var(--tone-share-bg);color:#1E5FC0">📎</span><mark>성수</mark>동 새로 생긴 크로플집 알아? 줄 엄청 길대</div>
+          </div>
+        </div>
+
+        <div class="result-group-label">이전</div>
+        <div class="result-item">
+          <div class="r-avatar b">지</div>
+          <div class="r-body">
+            <div class="r-top"><span class="r-from">지은</span><span class="r-room">· 1:1</span><span class="r-time">2주 전</span></div>
+            <div class="r-text">나 <mark>성수</mark> 이사 갔어! 한 번 놀러와</div>
+          </div>
+        </div>
+        <div class="result-item">
+          <div class="r-avatar a">민</div>
+          <div class="r-body">
+            <div class="r-top"><span class="r-from">민수</span><span class="r-room">· 1:1</span><span class="r-time">3주 전</span></div>
+            <div class="r-text">나 요즘 <mark>성수</mark>에 자주 가. 회사가 거기로 이전함</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="foot-help">
+        <div class="grp">
+          <span>이동: <kbd>↑↓</kbd></span>
+          <span>열기: <kbd>↵</kbd></span>
+          <span>닫기: <kbd>esc</kbd></span>
+        </div>
+        <span>0.12초만에 찾음</span>
+      </div>
+    </div>
+  </div>
+</div>
+</body></html>

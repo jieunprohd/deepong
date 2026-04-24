@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8"><title>10 집중 모드 · 딥워크</title><link rel="stylesheet" href="tokens.css">
+<style>
+body { background: var(--gray-100); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+.back-link { position: fixed; top: 20px; left: 20px; font-size: 13px; color: var(--gray-600); padding: 8px 14px; background: white; border-radius: var(--r-full); box-shadow: var(--shadow-sm); z-index: 10; }
+.window { width: 960px; height: 720px; border-radius: var(--r-xl); overflow: hidden; box-shadow: var(--shadow-xl); display: flex; flex-direction: column; background: #0E1220; position: relative; }
+.window-chrome { background: #1A1F33; border-bottom: 1px solid #2A304A; }
+
+.bg-gradient { position: absolute; inset: 36px 0 0 0; background: radial-gradient(circle at 30% 20%, rgba(47, 107, 255, 0.25) 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(168, 85, 247, 0.15) 0%, transparent 50%); }
+
+.content { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px; color: white; position: relative; }
+
+.mini-hud { position: absolute; top: 20px; left: 20px; display: flex; align-items: center; gap: 10px; font-size: 12px; color: rgba(255,255,255,0.6); }
+.mini-hud .status-dot { width: 8px; height: 8px; background: var(--presence-focus); border-radius: 50%; animation: pulse 2s infinite; }
+
+.escape-btn { position: absolute; top: 20px; right: 20px; display: flex; align-items: center; gap: 6px; padding: 8px 14px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: var(--r-full); font-size: 12px; color: rgba(255,255,255,0.7); cursor: pointer; transition: all var(--t-fast); }
+.escape-btn:hover { background: rgba(255,255,255,0.1); color: white; }
+
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+.task-label { font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.5); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 16px; }
+.task-name { font-size: 22px; font-weight: 600; letter-spacing: -0.02em; margin-bottom: 56px; }
+.task-name .editable { border-bottom: 1px dashed rgba(255,255,255,0.3); padding-bottom: 2px; }
+
+.timer-wrap { position: relative; width: 300px; height: 300px; margin-bottom: 40px; }
+.timer-ring { width: 100%; height: 100%; }
+.timer-text { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.timer-num { font-size: 68px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.03em; }
+.timer-label { font-size: 13px; color: rgba(255,255,255,0.5); margin-top: 4px; font-weight: 500; }
+
+.controls { display: flex; gap: 12px; margin-bottom: 40px; }
+.ctrl { display: flex; align-items: center; justify-content: center; gap: 6px; height: 48px; padding: 0 22px; border-radius: var(--r-full); font-size: 14px; font-weight: 600; cursor: pointer; transition: all var(--t-fast); border: none; }
+.ctrl.primary { background: white; color: #0E1220; }
+.ctrl.primary:hover { transform: translateY(-1px); box-shadow: 0 10px 30px rgba(255,255,255,0.2); }
+.ctrl.ghost { background: rgba(255,255,255,0.08); color: white; border: 1px solid rgba(255,255,255,0.12); }
+.ctrl.ghost:hover { background: rgba(255,255,255,0.12); }
+
+.session-info { display: flex; gap: 32px; padding: 14px 24px; background: rgba(255,255,255,0.04); border-radius: var(--r-full); border: 1px solid rgba(255,255,255,0.08); }
+.session-stat { text-align: center; }
+.session-stat .num { font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.session-stat .label { font-size: 11px; color: rgba(255,255,255,0.5); margin-top: 2px; }
+
+.queued-notifications { position: absolute; bottom: 32px; right: 32px; width: 280px; background: rgba(255,255,255,0.06); backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.1); border-radius: var(--r-md); padding: 14px 16px; }
+.qn-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.qn-title { font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.7); }
+.qn-count { font-size: 11px; color: rgba(255,255,255,0.5); }
+.qn-item { display: flex; gap: 8px; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.05); align-items: center; }
+.qn-item:last-child { border-bottom: none; }
+.qn-avatar { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 10px; font-weight: 700; flex-shrink: 0; }
+.qn-avatar.a { background: linear-gradient(135deg, #FFB26B, #F59E0B); }
+.qn-avatar.b { background: linear-gradient(135deg, #60E0B0, #00C471); }
+.qn-info { flex: 1; min-width: 0; }
+.qn-name { font-size: 11px; font-weight: 600; color: white; }
+.qn-preview { font-size: 10px; color: rgba(255,255,255,0.5); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.qn-tag { font-size: 9px; padding: 1px 5px; border-radius: var(--r-xs); flex-shrink: 0; }
+.qn-tag.chat { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.7); }
+.qn-tag.share { background: rgba(59, 130, 246, 0.2); color: #85B7EB; }
+</style></head>
+<body>
+<a href="index.html" class="back-link">← 전체 화면</a>
+<div class="window">
+  <div class="window-chrome"><div class="window-controls"><button class="window-btn close"></button><button class="window-btn min"></button><button class="window-btn max"></button></div></div>
+  <div class="bg-gradient"></div>
+
+  <div class="content">
+    <div class="mini-hud">
+      <div class="status-dot"></div>
+      <span>집중 모드 · 세션 1 / 4</span>
+    </div>
+
+    <button class="escape-btn">
+      집중 해제 <kbd style="font-family:var(--font-mono);font-size:10px;background:rgba(255,255,255,0.1);padding:1px 4px;border-radius:3px;">esc</kbd>
+    </button>
+
+    <div class="task-label">지금 하고 있는 일</div>
+    <div class="task-name"><span class="editable">GTF 투자 검토 메모 마무리하기</span></div>
+
+    <div class="timer-wrap">
+      <svg class="timer-ring" viewBox="0 0 300 300">
+        <circle cx="150" cy="150" r="135" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="8"/>
+        <circle cx="150" cy="150" r="135" fill="none" stroke="url(#grad)" stroke-width="8" stroke-linecap="round"
+          stroke-dasharray="848" stroke-dashoffset="340" transform="rotate(-90 150 150)"/>
+        <defs>
+          <linearGradient id="grad" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#85B7EB"/>
+            <stop offset="100%" stop-color="#2F6BFF"/>
+          </linearGradient>
+        </defs>
+      </svg>
+      <div class="timer-text">
+        <div class="timer-num">17:42</div>
+        <div class="timer-label">남은 시간</div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button class="ctrl primary">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><rect x="3" y="2" width="2" height="8"/><rect x="7" y="2" width="2" height="8"/></svg>
+        일시정지
+      </button>
+      <button class="ctrl ghost">+5분</button>
+      <button class="ctrl ghost">종료</button>
+    </div>
+
+    <div class="session-info">
+      <div class="session-stat"><div class="num">1/4</div><div class="label">세션</div></div>
+      <div class="session-stat"><div class="num">25분</div><div class="label">집중</div></div>
+      <div class="session-stat"><div class="num">5분</div><div class="label">휴식</div></div>
+      <div class="session-stat"><div class="num">2</div><div class="label">대기 중 알림</div></div>
+    </div>
+
+    <div class="queued-notifications">
+      <div class="qn-head">
+        <div class="qn-title">대기 중인 알림</div>
+        <div class="qn-count">2개 · 세션 끝나면 도착</div>
+      </div>
+      <div class="qn-item">
+        <div class="qn-avatar a">민</div>
+        <div class="qn-info">
+          <div class="qn-name">민수</div>
+          <div class="qn-preview">오늘 저녁 약속 가능해?</div>
+        </div>
+        <div class="qn-tag chat">💬</div>
+      </div>
+      <div class="qn-item">
+        <div class="qn-avatar b">지</div>
+        <div class="qn-info">
+          <div class="qn-name">지은</div>
+          <div class="qn-preview">이 기사 흥미롭네</div>
+        </div>
+        <div class="qn-tag share">📎</div>
+      </div>
+    </div>
+  </div>
+</div>
+</body></html>

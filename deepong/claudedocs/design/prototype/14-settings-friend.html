@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8"><title>14 친구별 설정 · 딥워크</title><link rel="stylesheet" href="tokens.css">
+<style>
+body { background: var(--gray-100); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+.back-link { position: fixed; top: 20px; left: 20px; font-size: 13px; color: var(--gray-600); padding: 8px 14px; background: white; border-radius: var(--r-full); box-shadow: var(--shadow-sm); z-index: 10; }
+.window { width: 1100px; height: 760px; background: white; border-radius: var(--r-xl); overflow: hidden; box-shadow: var(--shadow-xl); display: flex; flex-direction: column; }
+.app { flex: 1; display: flex; }
+
+.settings-nav { width: 240px; background: var(--gray-50); border-right: 1px solid var(--gray-200); padding: 20px 12px; overflow-y: auto; }
+.settings-title { font-size: 18px; font-weight: 700; padding: 4px 12px 16px; }
+.nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: var(--r-sm); font-size: 13px; font-weight: 500; color: var(--gray-700); cursor: pointer; margin-bottom: 1px; }
+.nav-item.active { background: var(--brand-primary-light); color: var(--brand-primary); font-weight: 600; }
+.nav-group-label { font-size: 10px; font-weight: 700; color: var(--gray-500); padding: 12px 12px 4px; letter-spacing: 0.06em; text-transform: uppercase; }
+.nav-item svg { width: 16px; height: 16px; }
+
+.friend-list { padding: 4px 8px 12px; }
+.friend-item { display: flex; gap: 10px; padding: 8px 12px; border-radius: var(--r-sm); margin-bottom: 2px; cursor: pointer; align-items: center; }
+.friend-item:hover { background: var(--gray-100); }
+.friend-item.active { background: white; box-shadow: var(--shadow-xs); }
+.friend-avatar-sm { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+.friend-avatar-sm.a { background: linear-gradient(135deg, #FFB26B, #F59E0B); }
+.friend-avatar-sm.b { background: linear-gradient(135deg, #60E0B0, #00C471); }
+.friend-avatar-sm.c { background: linear-gradient(135deg, #A78BFA, #7F77DD); }
+.friend-avatar-sm.d { background: linear-gradient(135deg, #FBA5C0, #D4537E); }
+.fr-name { font-size: 12px; font-weight: 600; }
+.fr-norm { font-size: 10px; color: var(--gray-500); margin-top: 1px; }
+
+.content { flex: 1; padding: 32px 40px 40px; overflow-y: auto; }
+.breadcrumb { font-size: 12px; color: var(--gray-500); margin-bottom: 12px; }
+
+.friend-hero { display: flex; gap: 16px; padding: 20px; background: linear-gradient(135deg, #FFF4E5, white); border: 1px solid var(--warning-light); border-radius: var(--r-md); margin-bottom: 24px; align-items: center; }
+.friend-hero-avatar { width: 64px; height: 64px; border-radius: 50%; background: linear-gradient(135deg, #FFB26B, #F59E0B); display: flex; align-items: center; justify-content: center; color: white; font-size: 24px; font-weight: 700; flex-shrink: 0; position: relative; }
+.friend-hero-avatar .dot { position: absolute; bottom: 2px; right: 2px; width: 14px; height: 14px; background: var(--presence-working); border-radius: 50%; border: 2px solid white; }
+.friend-hero-info { flex: 1; }
+.friend-hero-name { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; }
+.friend-hero-meta { font-size: 12px; color: var(--gray-600); margin-top: 2px; display: flex; gap: 10px; align-items: center; }
+.friend-hero-meta .dot-sep { color: var(--gray-300); }
+.friend-hero-actions { display: flex; gap: 6px; }
+.hero-btn { padding: 7px 12px; border-radius: var(--r-sm); font-size: 12px; font-weight: 600; border: 1px solid var(--gray-200); background: white; cursor: pointer; }
+
+.section { margin-bottom: 28px; }
+.section-head { font-size: 12px; font-weight: 700; color: var(--gray-500); letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+.section-head .updated { font-weight: 500; text-transform: none; color: var(--gray-400); font-size: 11px; letter-spacing: 0; }
+
+.card { background: white; border: 1px solid var(--gray-200); border-radius: var(--r-md); overflow: hidden; }
+.row { display: flex; align-items: center; gap: 14px; padding: 14px 18px; border-bottom: 1px solid var(--gray-100); }
+.row:last-child { border-bottom: none; }
+.row-info { flex: 1; }
+.row-title { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+.row-desc { font-size: 11px; color: var(--gray-600); line-height: 1.45; }
+
+.toggle { position: relative; width: 40px; height: 24px; background: var(--gray-300); border-radius: var(--r-full); cursor: pointer; flex-shrink: 0; }
+.toggle.on { background: var(--brand-primary); }
+.toggle::after { content: ''; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; background: white; border-radius: 50%; transition: transform var(--t-fast); }
+.toggle.on::after { transform: translateX(16px); }
+
+.segmented { display: flex; gap: 3px; background: var(--gray-100); padding: 3px; border-radius: var(--r-sm); }
+.seg { padding: 5px 10px; border-radius: var(--r-xs); font-size: 11px; font-weight: 600; color: var(--gray-600); cursor: pointer; background: none; border: none; }
+.seg.active { background: white; color: var(--gray-900); box-shadow: var(--shadow-xs); }
+
+.insights-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.insight { padding: 14px; background: var(--gray-50); border-radius: var(--r-md); }
+.insight-label { font-size: 11px; color: var(--gray-600); margin-bottom: 6px; }
+.insight-value { font-size: 18px; font-weight: 700; letter-spacing: -0.02em; }
+.insight-sub { font-size: 11px; color: var(--gray-500); margin-top: 2px; }
+
+.danger-btn { padding: 7px 12px; background: var(--danger-light); color: var(--danger); border-radius: var(--r-sm); font-size: 12px; font-weight: 600; border: none; cursor: pointer; }
+</style></head>
+<body>
+<a href="index.html" class="back-link">← 전체 화면</a>
+<div class="window">
+  <div class="window-chrome"><div class="window-controls"><button class="window-btn close"></button><button class="window-btn min"></button><button class="window-btn max"></button></div></div>
+  <div class="app">
+    <div class="settings-nav">
+      <div class="settings-title">설정</div>
+      <div class="nav-item">🔧 일반</div>
+      <div class="nav-item">👤 프로필</div>
+      <div class="nav-item">🔔 알림</div>
+      <div class="nav-item active">👥 친구별</div>
+      <div class="nav-item">🎨 외관</div>
+
+      <div class="nav-group-label">친구 목록</div>
+      <div class="friend-list">
+        <div class="friend-item active"><div class="friend-avatar-sm a">민</div><div><div class="fr-name">민수</div><div class="fr-norm">기본 · 수다 허용</div></div></div>
+        <div class="friend-item"><div class="friend-avatar-sm b">지</div><div><div class="fr-name">지은</div><div class="fr-norm">가족 · 모든 톤</div></div></div>
+        <div class="friend-item"><div class="friend-avatar-sm c">준</div><div><div class="fr-name">준호</div><div class="fr-norm">업무 · 공유만</div></div></div>
+        <div class="friend-item"><div class="friend-avatar-sm d">서</div><div><div class="fr-name">서연</div><div class="fr-norm">기본</div></div></div>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="breadcrumb">설정 › 친구별 › 민수</div>
+
+      <div class="friend-hero">
+        <div class="friend-hero-avatar">민<div class="dot"></div></div>
+        <div class="friend-hero-info">
+          <div class="friend-hero-name">민수</div>
+          <div class="friend-hero-meta">
+            <span>일하는 중</span>
+            <span class="dot-sep">•</span>
+            <span>친구된 지 8개월</span>
+            <span class="dot-sep">•</span>
+            <span>주 12회 대화</span>
+          </div>
+        </div>
+        <div class="friend-hero-actions">
+          <button class="hero-btn">대화 열기</button>
+          <button class="hero-btn">규범 재합의</button>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-head"><span>커뮤니케이션 규칙</span><span class="updated">2주 전 합의됨</span></div>
+        <div class="card">
+          <div class="row">
+            <div class="row-info"><div class="row-title">기본 메시지 톤</div><div class="row-desc">민수에게 보낼 때 자동 선택될 톤</div></div>
+            <div class="segmented">
+              <button class="seg active">💬 수다</button>
+              <button class="seg">🤔 물어봄</button>
+              <button class="seg">📎 공유</button>
+            </div>
+          </div>
+          <div class="row">
+            <div class="row-info"><div class="row-title">민수의 "급함" 허용</div><div class="row-desc">집중 모드 중에도 뚫고 들어올 수 있음 · 하루 3회 제한</div></div>
+            <div class="toggle on"></div>
+          </div>
+          <div class="row">
+            <div class="row-info"><div class="row-title">읽음 표시 공유</div><div class="row-desc">내가 읽었는지 민수에게 보여요</div></div>
+            <div class="toggle on"></div>
+          </div>
+          <div class="row">
+            <div class="row-info"><div class="row-title">프레즌스 공유</div><div class="row-desc">여유·일하는중·집중·오프 상태를 민수가 볼 수 있어요</div></div>
+            <div class="toggle on"></div>
+          </div>
+          <div class="row">
+            <div class="row-info"><div class="row-title">따라잡기 피드 우선순위</div><div class="row-desc">민수의 메시지가 피드에서 어디에 배치될지</div></div>
+            <div class="segmented">
+              <button class="seg">낮음</button>
+              <button class="seg active">기본</button>
+              <button class="seg">우선</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-head">우리 둘의 소통 패턴</div>
+        <div class="insights-grid">
+          <div class="insight">
+            <div class="insight-label">주로 대화하는 시간</div>
+            <div class="insight-value">밤 9–11시</div>
+            <div class="insight-sub">평일 기준 72%</div>
+          </div>
+          <div class="insight">
+            <div class="insight-label">평균 답장 시간</div>
+            <div class="insight-value">47분</div>
+            <div class="insight-sub">민수가 나에게 · 이번 달</div>
+          </div>
+          <div class="insight">
+            <div class="insight-label">가장 많이 쓴 톤</div>
+            <div class="insight-value">💬 수다 68%</div>
+            <div class="insight-sub">나머지 🤔 22% · 📎 10%</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-head">개인화</div>
+        <div class="card">
+          <div class="row">
+            <div class="row-info"><div class="row-title">별명 · 메모</div><div class="row-desc">민수만 볼 수 있는 개인 메모예요. 본인에게는 안 보여요.</div></div>
+            <input style="width:220px;height:32px;padding:0 10px;border:1px solid var(--gray-200);border-radius:var(--r-sm);font-size:12px" value="대학 동기, 제주도 친구">
+          </div>
+          <div class="row">
+            <div class="row-info"><div class="row-title">음소거</div><div class="row-desc">모든 알림을 일시 정지해요. 메시지는 계속 받아요.</div></div>
+            <div class="toggle"></div>
+          </div>
+          <div class="row">
+            <div class="row-info"><div class="row-title">친구 관계 해제</div><div class="row-desc">서로 대화할 수 없게 돼요. 대화 기록은 로컬에 남아요.</div></div>
+            <button class="danger-btn">관계 해제</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body></html>

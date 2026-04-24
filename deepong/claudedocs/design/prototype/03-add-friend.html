@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8"><title>03 친구 추가 · 딥워크</title><link rel="stylesheet" href="tokens.css">
+<style>
+body { background: var(--gray-100); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 40px; }
+.back-link { position: fixed; top: 20px; left: 20px; font-size: 13px; color: var(--gray-600); padding: 8px 14px; background: white; border-radius: var(--r-full); box-shadow: var(--shadow-sm); z-index: 10; }
+.window { width: 720px; height: 720px; background: white; border-radius: var(--r-xl); overflow: hidden; box-shadow: var(--shadow-xl); display: flex; flex-direction: column; }
+.body { flex: 1; padding: 40px 56px; overflow-y: auto; }
+.page-title { font-size: 24px; font-weight: 700; letter-spacing: -0.025em; margin-bottom: 6px; }
+.page-desc { color: var(--gray-600); font-size: 14px; margin-bottom: 28px; }
+
+.method-tabs { display: flex; gap: 8px; background: var(--gray-100); padding: 4px; border-radius: var(--r-md); margin-bottom: 28px; }
+.method-tab { flex: 1; height: 40px; display: flex; align-items: center; justify-content: center; gap: 6px; border-radius: var(--r-sm); font-size: 13px; font-weight: 600; color: var(--gray-600); cursor: pointer; transition: all var(--t-fast); }
+.method-tab.active { background: white; color: var(--gray-900); box-shadow: var(--shadow-xs); }
+.method-tab svg { width: 14px; height: 14px; }
+
+.invite-card { background: linear-gradient(135deg, var(--brand-primary-subtle), white); border: 1px solid var(--brand-primary-light); border-radius: var(--r-lg); padding: 24px; margin-bottom: 20px; }
+.invite-label { font-size: 11px; font-weight: 700; color: var(--brand-primary); letter-spacing: 0.08em; margin-bottom: 8px; }
+.invite-url { display: flex; gap: 8px; align-items: center; }
+.url-box { flex: 1; height: 44px; background: white; border: 1px solid var(--gray-200); border-radius: var(--r-md); padding: 0 14px; display: flex; align-items: center; font-size: 13px; font-family: var(--font-mono); color: var(--gray-700); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.copy-btn { height: 44px; padding: 0 18px; background: var(--brand-primary); color: white; border-radius: var(--r-md); font-size: 13px; font-weight: 600; white-space: nowrap; }
+.copy-btn:hover { background: var(--brand-primary-hover); }
+.invite-meta { display: flex; gap: 14px; margin-top: 12px; font-size: 12px; color: var(--gray-600); }
+.invite-meta .item { display: flex; align-items: center; gap: 4px; }
+
+.action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 28px; }
+.action-card { border: 1px solid var(--gray-200); border-radius: var(--r-md); padding: 20px; cursor: pointer; transition: all var(--t-base); text-align: left; background: white; }
+.action-card:hover { border-color: var(--brand-primary); background: var(--brand-primary-subtle); }
+.action-card .icon { width: 40px; height: 40px; border-radius: var(--r-md); background: var(--brand-primary-light); display: flex; align-items: center; justify-content: center; color: var(--brand-primary); margin-bottom: 12px; }
+.action-card h4 { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+.action-card p { font-size: 12px; color: var(--gray-600); }
+
+.section { margin-top: 24px; }
+.section-title { font-size: 13px; font-weight: 600; color: var(--gray-500); letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 12px; }
+.search-box { position: relative; margin-bottom: 12px; }
+.search-box input { width: 100%; height: 48px; padding: 0 14px 0 42px; border: 1px solid var(--gray-200); border-radius: var(--r-md); font-size: 14px; }
+.search-box svg { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--gray-400); }
+
+.user-row { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: var(--r-md); transition: background var(--t-fast); }
+.user-row:hover { background: var(--gray-50); }
+.user-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--gray-200); display: flex; align-items: center; justify-content: center; color: var(--gray-700); font-size: 14px; font-weight: 600; flex-shrink: 0; }
+.user-avatar.a { background: linear-gradient(135deg, #FFB26B, #F59E0B); color: white; }
+.user-avatar.b { background: linear-gradient(135deg, #60E0B0, #00C471); color: white; }
+.user-info { flex: 1; }
+.user-name { font-size: 14px; font-weight: 600; margin-bottom: 1px; }
+.user-handle { font-size: 12px; color: var(--gray-500); }
+.add-btn { height: 32px; padding: 0 14px; border-radius: var(--r-sm); background: var(--brand-primary); color: white; font-size: 13px; font-weight: 600; }
+.add-btn:hover { background: var(--brand-primary-hover); }
+.add-btn.pending { background: var(--gray-100); color: var(--gray-600); }
+</style></head>
+<body>
+<a href="index.html" class="back-link">← 전체 화면</a>
+<div class="window">
+  <div class="window-chrome"><div class="window-controls"><button class="window-btn close"></button><button class="window-btn min"></button><button class="window-btn max"></button></div></div>
+  <div class="body">
+    <h1 class="page-title">친구 추가</h1>
+    <p class="page-desc">딥워크는 상호 수락 기반이에요. 초대 링크를 보내거나, 상대방의 초대를 받을 수 있어요.</p>
+
+    <div class="method-tabs">
+      <div class="method-tab active">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 8h8m-3-3l3 3-3 3"/></svg>
+        초대 링크
+      </div>
+      <div class="method-tab">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><path d="M9 9h2m4 0v5m-3-3h3"/></svg>
+        QR 코드
+      </div>
+      <div class="method-tab">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="7" cy="7" r="5"/><path d="M14 14l-3-3"/></svg>
+        이메일 검색
+      </div>
+    </div>
+
+    <div class="invite-card">
+      <div class="invite-label">내 초대 링크</div>
+      <div class="invite-url">
+        <div class="url-box">deepwork.app/invite/oscar-7k3npqm4</div>
+        <button class="copy-btn">복사</button>
+      </div>
+      <div class="invite-meta">
+        <div class="item"><span style="color:var(--success)">●</span> 24시간 유효</div>
+        <div class="item">🔒 1회용</div>
+        <div class="item">5/10회 사용됨</div>
+      </div>
+    </div>
+
+    <div class="action-grid">
+      <button class="action-card">
+        <div class="icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M15 5L10 12L5 9L15 5z"/><path d="M10 12v5"/></svg></div>
+        <h4>카톡으로 공유</h4>
+        <p>친구에게 링크 전송</p>
+      </button>
+      <button class="action-card">
+        <div class="icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="14" height="14" rx="2"/><path d="M10 6v4m0 0v4m-4-4h4m0 0h4"/></svg></div>
+        <h4>새 링크 생성</h4>
+        <p>1회용 토큰 발급</p>
+      </button>
+    </div>
+
+    <div class="section">
+      <div class="section-title">받은 친구 요청 (2)</div>
+      <div class="user-row">
+        <div class="user-avatar a">민</div>
+        <div class="user-info"><div class="user-name">민수</div><div class="user-handle">minsu@example.com · 초대 링크로 요청</div></div>
+        <button class="add-btn">수락</button>
+      </div>
+      <div class="user-row">
+        <div class="user-avatar b">지</div>
+        <div class="user-info"><div class="user-name">지은</div><div class="user-handle">jieun@startup.co · QR로 요청</div></div>
+        <button class="add-btn">수락</button>
+      </div>
+    </div>
+  </div>
+</div>
+</body></html>

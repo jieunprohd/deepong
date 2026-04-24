@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8"><title>05 따라잡기 피드 · 딥워크</title><link rel="stylesheet" href="tokens.css">
+<style>
+body { background: var(--gray-100); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+.back-link { position: fixed; top: 20px; left: 20px; font-size: 13px; color: var(--gray-600); padding: 8px 14px; background: white; border-radius: var(--r-full); box-shadow: var(--shadow-sm); z-index: 10; }
+.window { width: 1200px; height: 780px; background: white; border-radius: var(--r-xl); overflow: hidden; box-shadow: var(--shadow-xl); display: flex; flex-direction: column; }
+.app { flex: 1; display: flex; }
+
+/* Sidebar */
+.sidebar { width: 72px; background: var(--gray-50); border-right: 1px solid var(--gray-200); display: flex; flex-direction: column; align-items: center; padding: 20px 0; gap: 8px; }
+.nav-icon { width: 44px; height: 44px; border-radius: var(--r-md); display: flex; align-items: center; justify-content: center; color: var(--gray-500); cursor: pointer; transition: all var(--t-fast); position: relative; }
+.nav-icon:hover { background: var(--gray-100); color: var(--gray-800); }
+.nav-icon.active { background: var(--brand-primary-light); color: var(--brand-primary); }
+.nav-icon .badge { position: absolute; top: 6px; right: 6px; min-width: 16px; height: 16px; padding: 0 5px; background: var(--danger); color: white; border-radius: var(--r-full); font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+.sidebar .spacer { flex: 1; }
+.me-avatar { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #2F6BFF, #85B7EB); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; position: relative; cursor: pointer; }
+.me-avatar .dot { position: absolute; bottom: -2px; right: -2px; width: 14px; height: 14px; background: var(--presence-focus); border-radius: 50%; border: 2px solid var(--gray-50); }
+
+/* Chat list */
+.chat-list { width: 300px; border-right: 1px solid var(--gray-200); display: flex; flex-direction: column; background: white; }
+.list-header { padding: 20px 18px 12px; }
+.list-title { font-size: 18px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 12px; }
+.list-search { position: relative; }
+.list-search input { width: 100%; height: 36px; padding: 0 12px 0 34px; background: var(--gray-100); border: none; border-radius: var(--r-sm); font-size: 13px; }
+.list-search input:focus { outline: 2px solid var(--brand-primary); }
+.list-search svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--gray-400); }
+
+.list-filters { display: flex; gap: 4px; padding: 0 18px 12px; }
+.list-filter { height: 28px; padding: 0 10px; border-radius: var(--r-full); font-size: 11px; font-weight: 600; background: var(--gray-100); color: var(--gray-600); border: none; cursor: pointer; }
+.list-filter.active { background: var(--gray-900); color: white; }
+
+.chat-items { flex: 1; overflow-y: auto; padding: 0 8px; }
+.chat-item { display: flex; gap: 10px; padding: 10px 12px; border-radius: var(--r-sm); cursor: pointer; margin-bottom: 2px; }
+.chat-item:hover { background: var(--gray-50); }
+.chat-item.active { background: var(--brand-primary-subtle); }
+.chat-avatar { width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 600; position: relative; }
+.chat-avatar.a { background: linear-gradient(135deg, #FFB26B, #F59E0B); }
+.chat-avatar.b { background: linear-gradient(135deg, #60E0B0, #00C471); }
+.chat-avatar.c { background: linear-gradient(135deg, #A78BFA, #7F77DD); }
+.chat-avatar.d { background: linear-gradient(135deg, #FBA5C0, #D4537E); }
+.chat-avatar.g { background: var(--gray-200); color: var(--gray-700); }
+.chat-avatar .pdot { position: absolute; bottom: 0px; right: 0px; width: 10px; height: 10px; border-radius: 50%; border: 2px solid white; }
+.chat-info { flex: 1; min-width: 0; }
+.chat-row1 { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 2px; }
+.chat-name { font-size: 14px; font-weight: 600; color: var(--gray-900); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chat-time { font-size: 11px; color: var(--gray-500); flex-shrink: 0; }
+.chat-preview { display: flex; gap: 6px; align-items: center; font-size: 12px; color: var(--gray-600); }
+.chat-preview .text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.count-badge { height: 18px; padding: 0 6px; background: var(--gray-100); border-radius: var(--r-full); font-size: 10px; font-weight: 600; color: var(--gray-700); display: flex; align-items: center; gap: 4px; }
+.count-badge.urgent { background: var(--tone-urgent-bg); color: #C23040; }
+.count-badge.ask { background: var(--tone-ask-bg); color: #B06B00; }
+
+/* Main - Catchup feed */
+.main { flex: 1; display: flex; flex-direction: column; background: var(--gray-50); }
+.main-header { padding: 24px 32px 18px; background: white; border-bottom: 1px solid var(--gray-200); }
+.greeting-row { display: flex; justify-content: space-between; align-items: flex-end; }
+.greeting h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 3px; }
+.greeting p { font-size: 13px; color: var(--gray-600); }
+.focus-pill { display: flex; align-items: center; gap: 8px; height: 36px; padding: 0 14px; background: var(--info-light); border-radius: var(--r-full); font-size: 13px; font-weight: 600; color: var(--info); }
+.focus-pill .blinking-dot { width: 8px; height: 8px; background: var(--presence-focus); border-radius: 50%; animation: pulse 2s infinite; }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+.summary-row { display: flex; gap: 12px; margin-top: 20px; }
+.stat { flex: 1; padding: 12px 14px; background: var(--gray-50); border-radius: var(--r-md); }
+.stat-label { font-size: 11px; font-weight: 600; color: var(--gray-600); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
+.stat-value { display: flex; align-items: baseline; gap: 6px; }
+.stat-value .num { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
+.stat-value .unit { font-size: 12px; color: var(--gray-600); }
+
+.feed { flex: 1; overflow-y: auto; padding: 24px 32px 40px; }
+.period-label { display: flex; align-items: center; gap: 10px; margin: 0 0 12px 4px; }
+.period-label h3 { font-size: 12px; font-weight: 600; color: var(--gray-500); letter-spacing: 0.04em; text-transform: uppercase; }
+.period-label .line { flex: 1; height: 1px; background: var(--gray-200); }
+
+.feed-card { background: white; border: 1px solid var(--gray-200); border-radius: var(--r-md); margin-bottom: 10px; overflow: hidden; transition: all var(--t-fast); }
+.feed-card:hover { border-color: var(--brand-primary); box-shadow: var(--shadow-sm); }
+.feed-card.urgent { border-left: 3px solid var(--danger); }
+.feed-card.ask { border-left: 3px solid var(--warning); }
+.feed-card.share { border-left: 3px solid var(--info); }
+.feed-card.chat { border-left: 3px solid var(--gray-300); }
+
+.feed-head { display: flex; gap: 12px; align-items: center; padding: 14px 16px 8px; }
+.feed-avatar { width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; font-weight: 600; }
+.feed-avatar.a { background: linear-gradient(135deg, #FFB26B, #F59E0B); }
+.feed-avatar.b { background: linear-gradient(135deg, #60E0B0, #00C471); }
+.feed-avatar.c { background: linear-gradient(135deg, #A78BFA, #7F77DD); }
+.feed-avatar.g { background: var(--gray-200); color: var(--gray-700); }
+.feed-who { flex: 1; font-size: 13px; font-weight: 600; color: var(--gray-900); }
+.feed-who span { font-weight: 400; color: var(--gray-500); margin-left: 4px; font-size: 12px; }
+.feed-time { font-size: 11px; color: var(--gray-500); }
+
+.feed-body { padding: 0 16px 12px; font-size: 14px; line-height: 1.5; color: var(--gray-800); }
+.feed-body .msg-snippet { display: flex; align-items: start; gap: 6px; padding: 6px 0; border-bottom: 1px solid var(--gray-100); }
+.feed-body .msg-snippet:last-child { border-bottom: none; }
+.feed-body .msg-snippet .text { flex: 1; font-size: 13px; color: var(--gray-700); }
+.feed-body .msg-snippet .meta { font-size: 11px; color: var(--gray-500); flex-shrink: 0; }
+
+.feed-actions { display: flex; gap: 6px; padding: 10px 12px; background: var(--gray-50); border-top: 1px solid var(--gray-100); }
+.fa-btn { height: 30px; padding: 0 12px; background: white; border: 1px solid var(--gray-200); border-radius: var(--r-sm); font-size: 12px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 4px; }
+.fa-btn:hover { background: var(--gray-100); }
+.fa-btn.primary { background: var(--brand-primary); color: white; border-color: var(--brand-primary); }
+.fa-btn.primary:hover { background: var(--brand-primary-hover); }
+.fa-btn.muted { color: var(--gray-500); }
+.spacer-auto { flex: 1; }
+
+.share-group { background: white; border: 1px solid var(--gray-200); border-radius: var(--r-md); padding: 14px 16px; margin-bottom: 10px; }
+.share-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.share-head h4 { font-size: 13px; font-weight: 600; }
+.share-count { font-size: 11px; color: var(--gray-500); }
+.share-items { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.share-item { display: flex; gap: 8px; padding: 8px; background: var(--gray-50); border-radius: var(--r-sm); align-items: center; cursor: pointer; }
+.share-item:hover { background: var(--gray-100); }
+.share-thumb { width: 36px; height: 36px; border-radius: var(--r-xs); background: var(--gray-200); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; color: var(--gray-600); }
+.share-info { min-width: 0; }
+.share-title { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.share-from { font-size: 11px; color: var(--gray-500); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.tiny-tag { display: inline-flex; align-items: center; gap: 3px; height: 18px; padding: 0 6px; border-radius: var(--r-xs); font-size: 10px; font-weight: 600; }
+</style></head>
+<body>
+<a href="index.html" class="back-link">← 전체 화면</a>
+<div class="window">
+  <div class="window-chrome"><div class="window-controls"><button class="window-btn close"></button><button class="window-btn min"></button><button class="window-btn max"></button></div></div>
+  <div class="app">
+
+    <div class="sidebar">
+      <div class="nav-icon active">
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 11l7-7 7 7M6 10v8h10v-8"/></svg>
+        <div class="badge">5</div>
+      </div>
+      <div class="nav-icon">
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 6h16v10H9l-4 3v-3H3z"/></svg>
+      </div>
+      <div class="nav-icon">
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="7" r="3"/><path d="M5 19c0-3 3-6 6-6s6 3 6 6"/></svg>
+      </div>
+      <div class="nav-icon">
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="10" r="5.5"/><path d="M15 14l4 4"/></svg>
+      </div>
+      <div class="spacer"></div>
+      <div class="nav-icon">
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="2"/><path d="M11 3v2M11 17v2M3 11h2M17 11h2M5 5l1.5 1.5M17 17l-1.5-1.5M5 17l1.5-1.5M17 5l-1.5 1.5"/></svg>
+      </div>
+      <div class="me-avatar">O<div class="dot"></div></div>
+    </div>
+
+    <div class="chat-list">
+      <div class="list-header">
+        <div class="list-title">대화</div>
+        <div class="list-search">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="6" cy="6" r="4.5"/><path d="M12 12l-3-3"/></svg>
+          <input placeholder="이름, 메시지 검색">
+        </div>
+      </div>
+      <div class="list-filters">
+        <button class="list-filter active">전체</button>
+        <button class="list-filter">놓친 것</button>
+        <button class="list-filter">그룹</button>
+      </div>
+      <div class="chat-items">
+        <div class="chat-item active">
+          <div class="chat-avatar a">민<div class="pdot" style="background:var(--presence-working)"></div></div>
+          <div class="chat-info">
+            <div class="chat-row1"><div class="chat-name">민수</div><div class="chat-time">오전 9:24</div></div>
+            <div class="chat-preview"><span class="count-badge ask">🤔 2</span><span class="count-badge">💬 4</span></div>
+          </div>
+        </div>
+        <div class="chat-item">
+          <div class="chat-avatar b">지<div class="pdot" style="background:var(--presence-free)"></div></div>
+          <div class="chat-info">
+            <div class="chat-row1"><div class="chat-name">지은</div><div class="chat-time">어제</div></div>
+            <div class="chat-preview"><span class="text">회의 끝나고 톡할게!</span></div>
+          </div>
+        </div>
+        <div class="chat-item">
+          <div class="chat-avatar g">3<div class="pdot" style="background:var(--presence-free)"></div></div>
+          <div class="chat-info">
+            <div class="chat-row1"><div class="chat-name">대학 동기방</div><div class="chat-time">어제</div></div>
+            <div class="chat-preview"><span class="count-badge">📎 7</span><span class="text">링크 공유</span></div>
+          </div>
+        </div>
+        <div class="chat-item">
+          <div class="chat-avatar c">준<div class="pdot" style="background:var(--presence-off)"></div></div>
+          <div class="chat-info">
+            <div class="chat-row1"><div class="chat-name">준호</div><div class="chat-time">2일 전</div></div>
+            <div class="chat-preview"><span class="text">ㅇㅋ 주말에 보자</span></div>
+          </div>
+        </div>
+        <div class="chat-item">
+          <div class="chat-avatar d">서<div class="pdot" style="background:var(--presence-focus)"></div></div>
+          <div class="chat-info">
+            <div class="chat-row1"><div class="chat-name">서연</div><div class="chat-time">3일 전</div></div>
+            <div class="chat-preview"><span class="text">바쁘면 답 안 해도 돼</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="main">
+      <div class="main-header">
+        <div class="greeting-row">
+          <div class="greeting">
+            <h1>안녕, Oscar 👋</h1>
+            <p>집중 중이셨네요. 그동안 놓친 것들을 정리했어요.</p>
+          </div>
+          <div class="focus-pill">
+            <div class="blinking-dot"></div>
+            집중 모드 · 18분 남음
+          </div>
+        </div>
+        <div class="summary-row">
+          <div class="stat"><div class="stat-label">답장 필요</div><div class="stat-value"><span class="num">3</span><span class="unit">건 · 2명</span></div></div>
+          <div class="stat"><div class="stat-label">읽을거리</div><div class="stat-value"><span class="num">7</span><span class="unit">링크</span></div></div>
+          <div class="stat"><div class="stat-label">편하게 볼 것</div><div class="stat-value"><span class="num">14</span><span class="unit">메시지</span></div></div>
+        </div>
+      </div>
+
+      <div class="feed">
+        <div class="period-label"><h3>지금 신경 써야 할 것</h3><div class="line"></div></div>
+
+        <div class="feed-card ask">
+          <div class="feed-head">
+            <div class="feed-avatar a">민</div>
+            <div class="feed-who">민수<span>· 오늘 중 답장</span></div>
+            <div class="feed-time">08:44</div>
+          </div>
+          <div class="feed-body">
+            <div class="msg-snippet"><span class="tiny-tag tone-ask">🤔 물어봄</span></div>
+            <div class="msg-snippet"><div class="text">혹시 오늘 저녁 약속 가능해? 지은이랑 같이 보려고</div></div>
+            <div class="msg-snippet"><div class="text">장소는 강남이나 성수 둘 중에 골라줘</div></div>
+          </div>
+          <div class="feed-actions">
+            <button class="fa-btn primary">지금 답장</button>
+            <button class="fa-btn">나중에</button>
+            <div class="spacer-auto"></div>
+            <button class="fa-btn muted">읽음 처리</button>
+          </div>
+        </div>
+
+        <div class="feed-card chat">
+          <div class="feed-head">
+            <div class="feed-avatar a">민</div>
+            <div class="feed-who">민수<span>· 수다 4건</span></div>
+            <div class="feed-time">어제 22:10</div>
+          </div>
+          <div class="feed-body">
+            <div class="msg-snippet"><span class="tiny-tag tone-chat">💬 수다</span></div>
+            <div class="msg-snippet"><div class="text">오늘 야근인데 미치겠다 ㅋㅋㅋ</div><div class="meta">어제</div></div>
+            <div class="msg-snippet"><div class="text">새 팀장 어떤 것 같냐고 물어봐도 돼? 엄청 빡세 보임</div><div class="meta">어제</div></div>
+            <div class="msg-snippet"><div class="text">... 그리고 2건 더</div></div>
+          </div>
+          <div class="feed-actions">
+            <button class="fa-btn">대화 열기</button>
+            <div class="spacer-auto"></div>
+            <button class="fa-btn muted">읽음 처리</button>
+          </div>
+        </div>
+
+        <div class="period-label" style="margin-top:28px"><h3>편할 때 읽어봐도 좋은 것</h3><div class="line"></div></div>
+
+        <div class="share-group">
+          <div class="share-head">
+            <h4>📎 공유받은 링크</h4>
+            <div class="share-count">· 7개 · 지난 24시간</div>
+          </div>
+          <div class="share-items">
+            <div class="share-item">
+              <div class="share-thumb">📰</div>
+              <div class="share-info">
+                <div class="share-title">DHH on Anti-AI Bias</div>
+                <div class="share-from">준호 · 2일 전</div>
+              </div>
+            </div>
+            <div class="share-item">
+              <div class="share-thumb">🎬</div>
+              <div class="share-info">
+                <div class="share-title">유튜브: 스타트업 펀딩</div>
+                <div class="share-from">지은 · 2일 전</div>
+              </div>
+            </div>
+            <div class="share-item">
+              <div class="share-thumb">📄</div>
+              <div class="share-info">
+                <div class="share-title">Notion 퍼블릭 문서</div>
+                <div class="share-from">대학 동기방 · 어제</div>
+              </div>
+            </div>
+            <div class="share-item">
+              <div class="share-thumb">📷</div>
+              <div class="share-info">
+                <div class="share-title">강남역 카페 추천 스샷</div>
+                <div class="share-from">서연 · 어제</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="feed-card chat">
+          <div class="feed-head">
+            <div class="feed-avatar g">3</div>
+            <div class="feed-who">대학 동기방<span>· 수다 12건</span></div>
+            <div class="feed-time">어제</div>
+          </div>
+          <div class="feed-body">
+            <div class="msg-snippet"><div class="text">민수가 새로 이직한 회사 얘기 중. 분위기 좋아 보임</div></div>
+          </div>
+          <div class="feed-actions">
+            <button class="fa-btn">대화 열기</button>
+            <div class="spacer-auto"></div>
+            <button class="fa-btn muted">모두 읽음</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</body></html>

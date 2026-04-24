@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8"><title>07 톤 태그 선택 · 딥워크</title><link rel="stylesheet" href="tokens.css">
+<style>
+body { background: var(--gray-100); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+.back-link { position: fixed; top: 20px; left: 20px; font-size: 13px; color: var(--gray-600); padding: 8px 14px; background: white; border-radius: var(--r-full); box-shadow: var(--shadow-sm); z-index: 10; }
+.window { width: 1100px; height: 760px; background: white; border-radius: var(--r-xl); overflow: hidden; box-shadow: var(--shadow-xl); display: flex; flex-direction: column; position: relative; }
+
+.blurred-bg { position: absolute; inset: 36px 0 0 0; background: linear-gradient(to bottom, #F9FAFB, white); filter: blur(2px); opacity: 0.6; }
+.blurred-bg::before { content: ''; position: absolute; inset: 0; background: repeating-linear-gradient(0deg, transparent, transparent 40px, rgba(0,0,0,0.02) 40px, rgba(0,0,0,0.02) 80px); }
+
+.overlay { position: absolute; inset: 36px 0 0 0; background: rgba(25, 31, 40, 0.3); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; }
+
+.modal { width: 520px; background: white; border-radius: var(--r-xl); box-shadow: var(--shadow-xl); overflow: hidden; }
+.modal-head { padding: 20px 24px 12px; border-bottom: 1px solid var(--gray-100); }
+.modal-title { font-size: 16px; font-weight: 700; margin-bottom: 2px; }
+.modal-subtitle { font-size: 12px; color: var(--gray-600); }
+
+.tone-list { padding: 8px; }
+.tone-option { display: flex; gap: 14px; padding: 14px 16px; border-radius: var(--r-md); cursor: pointer; transition: background var(--t-fast); align-items: center; position: relative; }
+.tone-option:hover { background: var(--gray-50); }
+.tone-option.selected { background: var(--brand-primary-subtle); }
+.tone-emoji { width: 44px; height: 44px; border-radius: var(--r-md); display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+.tone-chat-bg { background: var(--tone-chat-bg); }
+.tone-ask-bg { background: var(--tone-ask-bg); }
+.tone-urgent-bg { background: var(--tone-urgent-bg); }
+.tone-share-bg { background: var(--tone-share-bg); }
+
+.tone-info { flex: 1; }
+.tone-name-row { display: flex; align-items: baseline; gap: 10px; margin-bottom: 2px; }
+.tone-name { font-size: 14px; font-weight: 700; }
+.tone-when { font-size: 11px; color: var(--gray-500); font-weight: 500; }
+.tone-desc { font-size: 12px; color: var(--gray-600); line-height: 1.45; }
+
+.tone-kbd { display: flex; align-items: center; justify-content: center; width: 36px; height: 28px; background: var(--gray-100); border: 1px solid var(--gray-200); border-radius: var(--r-xs); font-family: var(--font-mono); font-size: 11px; font-weight: 600; color: var(--gray-600); flex-shrink: 0; }
+.tone-option.selected .tone-kbd { background: var(--brand-primary); color: white; border-color: var(--brand-primary); }
+
+.quota-badge { margin-left: 8px; padding: 2px 8px; background: var(--danger-light); color: #C23040; border-radius: var(--r-full); font-size: 10px; font-weight: 600; }
+
+.modal-foot { padding: 12px 16px; border-top: 1px solid var(--gray-100); background: var(--gray-50); display: flex; justify-content: space-between; align-items: center; }
+.modal-foot-hint { display: flex; gap: 12px; font-size: 11px; color: var(--gray-600); }
+.modal-foot-hint kbd { font-family: var(--font-mono); background: white; border: 1px solid var(--gray-200); border-radius: 3px; padding: 1px 5px; font-size: 10px; }
+
+.explain-chip { display: inline-flex; align-items: center; gap: 4px; margin-top: 6px; padding: 3px 8px; background: var(--tone-ask-bg); color: #B06B00; border-radius: var(--r-full); font-size: 10px; font-weight: 600; }
+</style></head>
+<body>
+<a href="index.html" class="back-link">← 전체 화면</a>
+<div class="window">
+  <div class="window-chrome"><div class="window-controls"><button class="window-btn close"></button><button class="window-btn min"></button><button class="window-btn max"></button></div></div>
+  <div class="blurred-bg"></div>
+  <div class="overlay">
+    <div class="modal">
+      <div class="modal-head">
+        <div class="modal-title">메시지 톤 선택</div>
+        <div class="modal-subtitle">민수에게 어떤 톤으로 보낼까요? 톤에 따라 알림 처리가 달라져요.</div>
+      </div>
+
+      <div class="tone-list">
+        <div class="tone-option selected">
+          <div class="tone-emoji tone-chat-bg">💬</div>
+          <div class="tone-info">
+            <div class="tone-name-row">
+              <div class="tone-name">수다</div>
+              <div class="tone-when">답장 천천히</div>
+            </div>
+            <div class="tone-desc">일상적인 대화. 알림 없이 상대방의 따라잡기 피드에만 표시됩니다.</div>
+          </div>
+          <div class="tone-kbd">⌘1</div>
+        </div>
+
+        <div class="tone-option">
+          <div class="tone-emoji tone-ask-bg">🤔</div>
+          <div class="tone-info">
+            <div class="tone-name-row">
+              <div class="tone-name">물어봄</div>
+              <div class="tone-when">오늘 중 답장 기대</div>
+            </div>
+            <div class="tone-desc">답이 필요한 질문. 상대가 "일하는 중"이면 쉬는 시간에 배치 알림됩니다.</div>
+          </div>
+          <div class="tone-kbd">⌘2</div>
+        </div>
+
+        <div class="tone-option">
+          <div class="tone-emoji tone-urgent-bg">⚡</div>
+          <div class="tone-info">
+            <div class="tone-name-row">
+              <div class="tone-name">급함</div>
+              <div class="tone-when">지금 알려줘</div>
+              <div class="quota-badge">오늘 2/3 남음</div>
+            </div>
+            <div class="tone-desc">집중 모드도 뚫고 즉시 알림. 하루 3회로 제한되니 진짜 급할 때만 써요.</div>
+          </div>
+          <div class="tone-kbd">⌘3</div>
+        </div>
+
+        <div class="tone-option">
+          <div class="tone-emoji tone-share-bg">📎</div>
+          <div class="tone-info">
+            <div class="tone-name-row">
+              <div class="tone-name">공유</div>
+              <div class="tone-when">답장 불필요</div>
+            </div>
+            <div class="tone-desc">링크·사진·영상을 그냥 던지는 용도. 따라잡기 피드의 "편하게 볼 것" 섹션으로 들어갑니다.</div>
+          </div>
+          <div class="tone-kbd">⌘4</div>
+        </div>
+      </div>
+
+      <div class="modal-foot">
+        <div class="modal-foot-hint">
+          <span>선택: <kbd>↑↓</kbd></span>
+          <span>확정: <kbd>↵</kbd></span>
+          <span>취소: <kbd>esc</kbd></span>
+        </div>
+        <div class="explain-chip">🤔 민수는 평일 오후 6:30 이후에 답장할 가능성 높음</div>
+      </div>
+    </div>
+  </div>
+</div>
+</body></html>

@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8"><title>08 그룹 채팅 · 딥워크</title><link rel="stylesheet" href="tokens.css">
+<style>
+body { background: var(--gray-100); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+.back-link { position: fixed; top: 20px; left: 20px; font-size: 13px; color: var(--gray-600); padding: 8px 14px; background: white; border-radius: var(--r-full); box-shadow: var(--shadow-sm); z-index: 10; }
+.window { width: 1200px; height: 780px; background: white; border-radius: var(--r-xl); overflow: hidden; box-shadow: var(--shadow-xl); display: flex; flex-direction: column; }
+.app { flex: 1; display: flex; }
+
+.sidebar { width: 72px; background: var(--gray-50); border-right: 1px solid var(--gray-200); display: flex; flex-direction: column; align-items: center; padding: 20px 0; gap: 8px; }
+.nav-icon { width: 44px; height: 44px; border-radius: var(--r-md); display: flex; align-items: center; justify-content: center; color: var(--gray-500); }
+.nav-icon.active { background: var(--brand-primary-light); color: var(--brand-primary); }
+.sidebar .spacer { flex: 1; }
+.me-avatar { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #2F6BFF, #85B7EB); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; }
+
+.room { flex: 1; display: flex; flex-direction: column; background: var(--gray-50); }
+
+.room-header { display: flex; align-items: center; gap: 12px; padding: 14px 20px; background: white; border-bottom: 1px solid var(--gray-200); }
+.group-avatars { display: flex; position: relative; width: 44px; height: 44px; }
+.group-avatars .ga { position: absolute; width: 26px; height: 26px; border-radius: 50%; border: 2px solid white; display: flex; align-items: center; justify-content: center; color: white; font-size: 10px; font-weight: 700; }
+.group-avatars .ga:nth-child(1) { top: 0; left: 0; background: linear-gradient(135deg, #FFB26B, #F59E0B); }
+.group-avatars .ga:nth-child(2) { top: 0; right: 0; background: linear-gradient(135deg, #60E0B0, #00C471); }
+.group-avatars .ga:nth-child(3) { bottom: 0; left: 9px; background: linear-gradient(135deg, #A78BFA, #7F77DD); }
+.room-info { flex: 1; }
+.room-name { font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+.room-name .tag-group { font-size: 10px; font-weight: 600; color: var(--gray-500); background: var(--gray-100); padding: 2px 6px; border-radius: var(--r-xs); }
+.room-status { font-size: 12px; color: var(--gray-600); }
+.member-count { font-weight: 600; color: var(--gray-800); }
+
+/* Right members panel */
+.members-panel { width: 240px; background: white; border-left: 1px solid var(--gray-200); display: flex; flex-direction: column; }
+.members-head { padding: 16px 18px 10px; border-bottom: 1px solid var(--gray-100); }
+.members-head h3 { font-size: 13px; font-weight: 700; }
+.members-head .meta { font-size: 11px; color: var(--gray-500); margin-top: 2px; }
+.members-list { flex: 1; overflow-y: auto; padding: 8px; }
+.member-row { display: flex; gap: 10px; padding: 8px 10px; border-radius: var(--r-sm); align-items: center; }
+.member-row:hover { background: var(--gray-50); }
+.mem-avatar { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 11px; font-weight: 700; position: relative; flex-shrink: 0; }
+.mem-avatar.a { background: linear-gradient(135deg, #FFB26B, #F59E0B); }
+.mem-avatar.b { background: linear-gradient(135deg, #60E0B0, #00C471); }
+.mem-avatar.c { background: linear-gradient(135deg, #A78BFA, #7F77DD); }
+.mem-avatar.me { background: linear-gradient(135deg, #2F6BFF, #85B7EB); }
+.mem-avatar.d { background: linear-gradient(135deg, #FBA5C0, #D4537E); }
+.mem-avatar .dot { position: absolute; bottom: 0; right: 0; width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid white; }
+.mem-info { flex: 1; min-width: 0; }
+.mem-name { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mem-status { font-size: 10px; color: var(--gray-500); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mem-badge { display: inline-flex; padding: 1px 5px; background: var(--tone-ask-bg); color: #B06B00; border-radius: var(--r-xs); font-size: 9px; font-weight: 700; margin-top: 2px; }
+
+/* Messages */
+.messages { flex: 1; overflow-y: auto; padding: 16px 20px 20px; display: flex; flex-direction: column; gap: 10px; }
+
+/* Hand raise card */
+.handraise-card { background: white; border: 1px solid var(--warning); border-radius: var(--r-md); padding: 14px 16px; box-shadow: var(--shadow-sm); }
+.handraise-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.hr-icon { width: 32px; height: 32px; border-radius: var(--r-md); background: var(--warning-light); display: flex; align-items: center; justify-content: center; font-size: 16px; }
+.hr-title { flex: 1; }
+.hr-title h4 { font-size: 13px; font-weight: 700; margin-bottom: 1px; }
+.hr-title p { font-size: 11px; color: var(--gray-600); }
+.hr-question { padding: 10px 12px; background: var(--gray-50); border-radius: var(--r-sm); margin-bottom: 10px; font-size: 13px; color: var(--gray-800); line-height: 1.5; }
+.hr-answered { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; font-size: 11px; color: var(--gray-600); }
+.hr-answered .avatar-stack { display: flex; }
+.hr-answered .avatar-stack .mini { width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid white; margin-left: -6px; display: flex; align-items: center; justify-content: center; color: white; font-size: 9px; font-weight: 700; }
+.hr-answered .avatar-stack .mini:first-child { margin-left: 0; }
+.hr-answered .avatar-stack .a { background: #F59E0B; }
+.hr-answered .avatar-stack .b { background: #00C471; }
+.hr-actions { display: flex; gap: 6px; }
+.hr-btn { flex: 1; height: 36px; border-radius: var(--r-sm); font-size: 12px; font-weight: 600; cursor: pointer; transition: all var(--t-fast); }
+.hr-btn.primary { background: var(--warning); color: white; }
+.hr-btn.primary:hover { filter: brightness(1.05); }
+.hr-btn.secondary { background: var(--gray-100); color: var(--gray-700); }
+.hr-btn.secondary:hover { background: var(--gray-200); }
+
+.msg-group { display: flex; gap: 10px; max-width: 78%; }
+.msg-group.mine { align-self: flex-end; flex-direction: row-reverse; }
+.msg-avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 12px; font-weight: 600; flex-shrink: 0; }
+.msg-avatar.a { background: linear-gradient(135deg, #FFB26B, #F59E0B); }
+.msg-avatar.b { background: linear-gradient(135deg, #60E0B0, #00C471); }
+.msg-avatar.c { background: linear-gradient(135deg, #A78BFA, #7F77DD); }
+.msg-avatar.d { background: linear-gradient(135deg, #FBA5C0, #D4537E); }
+.msg-stack { display: flex; flex-direction: column; gap: 4px; }
+.msg-group.mine .msg-stack { align-items: flex-end; }
+.msg-meta { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--gray-500); padding: 0 4px; }
+.msg-meta .sender { font-weight: 600; color: var(--gray-700); font-size: 12px; }
+
+.bubble { padding: 10px 14px; border-radius: var(--r-md); font-size: 14px; line-height: 1.45; max-width: 440px; }
+.bubble.theirs { background: white; border: 1px solid var(--gray-200); color: var(--gray-900); border-top-left-radius: 4px; }
+.bubble.mine { background: var(--brand-primary); color: white; border-top-right-radius: 4px; }
+.bubble.tone-share { background: var(--info-light); color: #1E5FC0; }
+.bubble-tag { font-size: 10px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; display: inline-flex; align-items: center; gap: 3px; margin-bottom: 4px; opacity: 0.7; }
+
+.reactions { display: flex; gap: 4px; margin-top: 2px; padding: 0 4px; }
+.reaction { display: inline-flex; align-items: center; gap: 2px; height: 22px; padding: 0 7px; background: white; border: 1px solid var(--gray-200); border-radius: var(--r-full); font-size: 11px; font-weight: 600; color: var(--gray-700); }
+.reaction.mine { background: var(--brand-primary-subtle); border-color: var(--brand-primary); color: var(--brand-primary); }
+
+.read-count { font-size: 10px; color: var(--gray-500); padding: 0 4px; }
+
+.composer { padding: 12px 20px 20px; background: white; border-top: 1px solid var(--gray-200); }
+.composer-box { display: flex; gap: 8px; align-items: flex-end; padding: 6px 6px 6px 14px; background: var(--gray-100); border-radius: var(--r-md); }
+.composer-tools { display: flex; gap: 2px; }
+.c-tool { width: 30px; height: 30px; border-radius: var(--r-xs); display: flex; align-items: center; justify-content: center; color: var(--gray-500); cursor: pointer; }
+.composer-input { flex: 1; min-height: 36px; padding: 8px 0; border: none; background: transparent; resize: none; font-size: 14px; outline: none; font-family: inherit; }
+.send-btn { width: 36px; height: 36px; border-radius: var(--r-sm); background: var(--brand-primary); color: white; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+
+.tone-selector { display: flex; gap: 4px; margin-bottom: 8px; }
+.tone-btn { display: flex; align-items: center; gap: 4px; height: 28px; padding: 0 10px; border-radius: var(--r-full); font-size: 11px; font-weight: 600; background: var(--gray-100); color: var(--gray-600); border: 1px solid transparent; cursor: pointer; }
+.tone-btn.active { background: var(--tone-ask-bg); color: #B06B00; border-color: #F5C265; }
+</style></head>
+<body>
+<a href="index.html" class="back-link">← 전체 화면</a>
+<div class="window">
+  <div class="window-chrome"><div class="window-controls"><button class="window-btn close"></button><button class="window-btn min"></button><button class="window-btn max"></button></div></div>
+  <div class="app">
+    <div class="sidebar">
+      <div class="nav-icon"><svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 11l7-7 7 7M6 10v8h10v-8"/></svg></div>
+      <div class="nav-icon active"><svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 6h16v10H9l-4 3v-3H3z"/></svg></div>
+      <div class="nav-icon"><svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="7" r="3"/><path d="M5 19c0-3 3-6 6-6s6 3 6 6"/></svg></div>
+      <div class="nav-icon"><svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="10" r="5.5"/><path d="M15 14l4 4"/></svg></div>
+      <div class="spacer"></div>
+      <div class="me-avatar">O</div>
+    </div>
+
+    <div class="room">
+      <div class="room-header">
+        <div class="group-avatars"><div class="ga">민</div><div class="ga">지</div><div class="ga">준</div></div>
+        <div class="room-info">
+          <div class="room-name">주말 뭐할까 <span class="tag-group">그룹</span></div>
+          <div class="room-status"><span class="member-count">4명</span> · 민수, 지은, 준호, 나 · 기본 톤 <strong>🤔 물어봄</strong></div>
+        </div>
+        <div style="display:flex;gap:6px"><button style="height:32px;padding:0 12px;background:var(--gray-100);border-radius:var(--r-sm);font-size:12px;font-weight:600;color:var(--gray-700);border:none">세부정보</button></div>
+      </div>
+
+      <div class="messages">
+        <div style="align-self:center;padding:4px 12px;background:var(--gray-100);border-radius:var(--r-full);font-size:10px;color:var(--gray-500)">오늘 · 오전 11:20</div>
+
+        <div class="msg-group">
+          <div class="msg-avatar a">민</div>
+          <div class="msg-stack">
+            <div class="msg-meta"><span class="sender">민수</span><span>11:20</span></div>
+            <div class="bubble theirs">
+              <div class="bubble-tag">📎 공유</div>
+              이번 주말에 어디 놀러 갈지 고민 중인데 아이디어 있으면 풀어봐
+            </div>
+          </div>
+        </div>
+
+        <div class="msg-group">
+          <div class="msg-avatar b">지</div>
+          <div class="msg-stack">
+            <div class="msg-meta"><span class="sender">지은</span><span>11:22</span></div>
+            <div class="bubble theirs tone-share">
+              <div class="bubble-tag">📎 공유</div>
+              강릉 어때? 여기 카페가 유명하대
+            </div>
+            <div class="reactions">
+              <div class="reaction">👍 2</div>
+              <div class="reaction">🤔 1</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="handraise-card">
+          <div class="handraise-head">
+            <div class="hr-icon">✋</div>
+            <div class="hr-title">
+              <h4>민수가 질문했어요</h4>
+              <p>물어봄 태그 · 누군가의 답이 필요해요</p>
+            </div>
+          </div>
+          <div class="hr-question">
+            토요일 아침 6시 출발 가능한 사람 있어? 교통 체증 피하려고 😅
+          </div>
+          <div class="hr-answered">
+            <div class="avatar-stack">
+              <div class="mini a">지</div>
+              <div class="mini b">준</div>
+            </div>
+            <span>2명이 답했어요 · 지은, 준호</span>
+          </div>
+          <div class="hr-actions">
+            <button class="hr-btn primary">✋ 답변하기</button>
+            <button class="hr-btn secondary">패스</button>
+          </div>
+        </div>
+
+        <div class="msg-group">
+          <div class="msg-avatar c">준</div>
+          <div class="msg-stack">
+            <div class="msg-meta"><span class="sender">준호</span><span>11:34</span></div>
+            <div class="bubble theirs">가능! 전날 일찍 자둘게</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="composer">
+        <div class="tone-selector">
+          <button class="tone-btn">💬 수다</button>
+          <button class="tone-btn active">🤔 물어봄</button>
+          <button class="tone-btn">⚡ 급함</button>
+          <button class="tone-btn">📎 공유</button>
+        </div>
+        <div class="composer-box">
+          <div class="composer-tools">
+            <div class="c-tool"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="3" width="12" height="10" rx="2"/><circle cx="6" cy="7" r="1.2"/></svg></div>
+          </div>
+          <textarea class="composer-input" placeholder="메시지 입력…"></textarea>
+          <button class="send-btn"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 8l12-6-6 12-2-5z"/></svg></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="members-panel">
+      <div class="members-head"><h3>멤버 4명</h3><div class="meta">온라인 2명</div></div>
+      <div class="members-list">
+        <div class="member-row">
+          <div class="mem-avatar me">O<div class="dot" style="background:var(--presence-focus)"></div></div>
+          <div class="mem-info"><div class="mem-name">Oscar (나)</div><div class="mem-status">집중 · 방장</div></div>
+        </div>
+        <div class="member-row">
+          <div class="mem-avatar a">민<div class="dot" style="background:var(--presence-working)"></div></div>
+          <div class="mem-info"><div class="mem-name">민수</div><div class="mem-status">일하는 중</div><div class="mem-badge">✋ 손들었음</div></div>
+        </div>
+        <div class="member-row">
+          <div class="mem-avatar b">지<div class="dot" style="background:var(--presence-free)"></div></div>
+          <div class="mem-info"><div class="mem-name">지은</div><div class="mem-status">여유</div></div>
+        </div>
+        <div class="member-row">
+          <div class="mem-avatar c">준<div class="dot" style="background:var(--presence-off)"></div></div>
+          <div class="mem-info"><div class="mem-name">준호</div><div class="mem-status">오프라인</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body></html>

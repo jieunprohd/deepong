@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8"><title>06 1:1 채팅방 · 딥워크</title><link rel="stylesheet" href="tokens.css">
+<style>
+body { background: var(--gray-100); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+.back-link { position: fixed; top: 20px; left: 20px; font-size: 13px; color: var(--gray-600); padding: 8px 14px; background: white; border-radius: var(--r-full); box-shadow: var(--shadow-sm); z-index: 10; }
+.window { width: 1200px; height: 780px; background: white; border-radius: var(--r-xl); overflow: hidden; box-shadow: var(--shadow-xl); display: flex; flex-direction: column; }
+.app { flex: 1; display: flex; }
+
+.sidebar { width: 72px; background: var(--gray-50); border-right: 1px solid var(--gray-200); display: flex; flex-direction: column; align-items: center; padding: 20px 0; gap: 8px; }
+.nav-icon { width: 44px; height: 44px; border-radius: var(--r-md); display: flex; align-items: center; justify-content: center; color: var(--gray-500); cursor: pointer; }
+.nav-icon.active { background: var(--brand-primary-light); color: var(--brand-primary); }
+.sidebar .spacer { flex: 1; }
+.me-avatar { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #2F6BFF, #85B7EB); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; position: relative; }
+.me-avatar .dot { position: absolute; bottom: -2px; right: -2px; width: 14px; height: 14px; background: var(--presence-focus); border-radius: 50%; border: 2px solid var(--gray-50); }
+
+.chat-list { width: 260px; border-right: 1px solid var(--gray-200); display: flex; flex-direction: column; background: white; }
+.list-header { padding: 18px 16px 10px; }
+.list-title { font-size: 17px; font-weight: 700; }
+.chat-items { flex: 1; overflow-y: auto; padding: 4px 8px; }
+.chat-item { display: flex; gap: 10px; padding: 10px 10px; border-radius: var(--r-sm); cursor: pointer; margin-bottom: 2px; }
+.chat-item:hover { background: var(--gray-50); }
+.chat-item.active { background: var(--brand-primary-subtle); }
+.chat-avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; font-weight: 600; position: relative; flex-shrink: 0; }
+.chat-avatar.a { background: linear-gradient(135deg, #FFB26B, #F59E0B); }
+.chat-avatar.b { background: linear-gradient(135deg, #60E0B0, #00C471); }
+.chat-avatar.g { background: var(--gray-200); color: var(--gray-700); }
+.chat-avatar .pdot { position: absolute; bottom: 0; right: 0; width: 10px; height: 10px; border-radius: 50%; border: 2px solid white; }
+.chat-info { flex: 1; min-width: 0; }
+.chat-name { font-size: 13px; font-weight: 600; }
+.chat-preview { font-size: 11px; color: var(--gray-600); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.room { flex: 1; display: flex; flex-direction: column; background: var(--gray-50); }
+
+/* Room header */
+.room-header { display: flex; align-items: center; gap: 12px; padding: 14px 20px; background: white; border-bottom: 1px solid var(--gray-200); }
+.room-avatar { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #FFB26B, #F59E0B); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; position: relative; }
+.room-avatar .pdot { position: absolute; bottom: 0; right: 0; width: 12px; height: 12px; background: var(--presence-working); border-radius: 50%; border: 2px solid white; }
+.room-info { flex: 1; }
+.room-name { font-size: 15px; font-weight: 700; }
+.room-status { font-size: 12px; color: var(--gray-600); display: flex; align-items: center; gap: 4px; }
+.room-tools { display: flex; gap: 6px; }
+.tool-btn { width: 36px; height: 36px; border-radius: var(--r-sm); display: flex; align-items: center; justify-content: center; color: var(--gray-600); cursor: pointer; }
+.tool-btn:hover { background: var(--gray-100); color: var(--gray-900); }
+
+/* Friend status banner */
+.status-banner { margin: 12px 20px 0; padding: 10px 14px; background: var(--warning-light); border-radius: var(--r-sm); font-size: 12px; color: #945300; display: flex; gap: 8px; align-items: center; }
+.status-banner svg { flex-shrink: 0; color: var(--warning); }
+
+/* Messages */
+.messages { flex: 1; overflow-y: auto; padding: 16px 20px 20px; display: flex; flex-direction: column; gap: 8px; }
+
+.day-divider { display: flex; align-items: center; gap: 10px; margin: 16px 0 6px; }
+.day-divider .line { flex: 1; height: 1px; background: var(--gray-200); }
+.day-divider .label { font-size: 11px; font-weight: 600; color: var(--gray-500); }
+
+.msg-group { display: flex; gap: 10px; max-width: 78%; }
+.msg-group.mine { align-self: flex-end; flex-direction: row-reverse; }
+.msg-avatar { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #FFB26B, #F59E0B); display: flex; align-items: center; justify-content: center; color: white; font-size: 12px; font-weight: 600; flex-shrink: 0; }
+.msg-avatar.hide { visibility: hidden; }
+.msg-stack { display: flex; flex-direction: column; gap: 4px; }
+.msg-group.mine .msg-stack { align-items: flex-end; }
+
+.msg-meta { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--gray-500); margin-bottom: 2px; padding: 0 4px; }
+.msg-meta .sender { font-weight: 600; color: var(--gray-700); font-size: 12px; }
+
+.bubble { padding: 10px 14px; border-radius: var(--r-md); font-size: 14px; line-height: 1.45; max-width: 480px; }
+.bubble.theirs { background: white; border: 1px solid var(--gray-200); color: var(--gray-900); border-top-left-radius: 4px; }
+.bubble.mine { background: var(--brand-primary); color: white; border-top-right-radius: 4px; }
+.bubble.tone-ask { border-left: 3px solid var(--warning); }
+.bubble.tone-share { background: var(--info-light); border-color: var(--info-light); color: #1E5FC0; }
+
+.bubble-tag { font-size: 10px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; display: inline-flex; align-items: center; gap: 3px; margin-bottom: 4px; opacity: 0.7; }
+
+.msg-foot { display: flex; align-items: center; gap: 6px; font-size: 10px; color: var(--gray-400); padding: 0 4px; }
+.msg-foot .read { color: var(--brand-primary); font-weight: 600; }
+
+/* Link preview */
+.link-preview { display: flex; gap: 10px; padding: 10px; background: white; border: 1px solid var(--gray-200); border-radius: var(--r-sm); max-width: 340px; margin-top: 4px; }
+.link-thumb { width: 56px; height: 56px; border-radius: var(--r-xs); background: linear-gradient(135deg, #EAF0FF, #C7D9FF); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+.link-info { min-width: 0; }
+.link-title { font-size: 12px; font-weight: 600; color: var(--gray-900); margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.link-desc { font-size: 11px; color: var(--gray-600); line-height: 1.4; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.link-domain { font-size: 10px; color: var(--gray-500); margin-top: 3px; }
+
+/* Composer */
+.composer { padding: 12px 20px 20px; background: white; border-top: 1px solid var(--gray-200); }
+.tone-selector { display: flex; gap: 4px; margin-bottom: 8px; }
+.tone-btn { display: flex; align-items: center; gap: 4px; height: 28px; padding: 0 10px; border-radius: var(--r-full); font-size: 11px; font-weight: 600; background: var(--gray-100); color: var(--gray-600); border: 1px solid transparent; cursor: pointer; transition: all var(--t-fast); }
+.tone-btn kbd { font-family: var(--font-mono); background: white; border: 1px solid var(--gray-200); border-radius: 3px; padding: 0 4px; font-size: 9px; margin-left: 4px; }
+.tone-btn.active.chat { background: var(--gray-200); color: var(--gray-900); border-color: var(--gray-300); }
+.tone-btn.active.ask { background: var(--tone-ask-bg); color: #B06B00; border-color: #F5C265; }
+.tone-btn.active.urgent { background: var(--tone-urgent-bg); color: #C23040; border-color: #F5A5A8; }
+.tone-btn.active.share { background: var(--tone-share-bg); color: #1E5FC0; border-color: #A5C9F5; }
+
+.composer-box { display: flex; gap: 8px; align-items: flex-end; padding: 6px 6px 6px 14px; background: var(--gray-100); border-radius: var(--r-md); transition: background var(--t-fast); }
+.composer-box:focus-within { background: white; box-shadow: 0 0 0 2px var(--brand-primary-light); }
+.composer-tools { display: flex; gap: 2px; }
+.c-tool { width: 30px; height: 30px; border-radius: var(--r-xs); display: flex; align-items: center; justify-content: center; color: var(--gray-500); cursor: pointer; }
+.c-tool:hover { background: var(--gray-200); color: var(--gray-800); }
+.composer-input { flex: 1; min-height: 36px; max-height: 120px; padding: 8px 0; border: none; background: transparent; resize: none; font-size: 14px; line-height: 1.45; outline: none; font-family: inherit; }
+.send-btn { width: 36px; height: 36px; border-radius: var(--r-sm); background: var(--brand-primary); color: white; display: flex; align-items: center; justify-content: center; cursor: pointer; align-self: flex-end; }
+.send-btn:hover { background: var(--brand-primary-hover); }
+.send-btn.disabled { background: var(--gray-300); cursor: not-allowed; }
+
+.composer-hint { display: flex; justify-content: space-between; margin-top: 6px; padding: 0 4px; font-size: 11px; color: var(--gray-500); }
+.hint-kbds { display: flex; gap: 8px; }
+.hint-kbds span kbd { font-family: var(--font-mono); background: var(--gray-100); border: 1px solid var(--gray-200); border-radius: 3px; padding: 1px 4px; font-size: 10px; }
+</style></head>
+<body>
+<a href="index.html" class="back-link">← 전체 화면</a>
+<div class="window">
+  <div class="window-chrome"><div class="window-controls"><button class="window-btn close"></button><button class="window-btn min"></button><button class="window-btn max"></button></div></div>
+  <div class="app">
+
+    <div class="sidebar">
+      <div class="nav-icon"><svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 11l7-7 7 7M6 10v8h10v-8"/></svg></div>
+      <div class="nav-icon active"><svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 6h16v10H9l-4 3v-3H3z"/></svg></div>
+      <div class="nav-icon"><svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="7" r="3"/><path d="M5 19c0-3 3-6 6-6s6 3 6 6"/></svg></div>
+      <div class="nav-icon"><svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="10" r="5.5"/><path d="M15 14l4 4"/></svg></div>
+      <div class="spacer"></div>
+      <div class="me-avatar">O<div class="dot"></div></div>
+    </div>
+
+    <div class="chat-list">
+      <div class="list-header"><div class="list-title">대화</div></div>
+      <div class="chat-items">
+        <div class="chat-item active">
+          <div class="chat-avatar a">민<div class="pdot" style="background:var(--presence-working)"></div></div>
+          <div class="chat-info"><div class="chat-name">민수</div><div class="chat-preview">오늘 저녁 약속 가능해?</div></div>
+        </div>
+        <div class="chat-item">
+          <div class="chat-avatar b">지<div class="pdot" style="background:var(--presence-free)"></div></div>
+          <div class="chat-info"><div class="chat-name">지은</div><div class="chat-preview">회의 끝나고 톡할게!</div></div>
+        </div>
+        <div class="chat-item">
+          <div class="chat-avatar g">3<div class="pdot" style="background:var(--presence-free)"></div></div>
+          <div class="chat-info"><div class="chat-name">대학 동기방</div><div class="chat-preview">링크 공유 7개</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="room">
+      <div class="room-header">
+        <div class="room-avatar">민<div class="pdot"></div></div>
+        <div class="room-info">
+          <div class="room-name">민수</div>
+          <div class="room-status">🟡 일하는 중 · 오후 6:30까지</div>
+        </div>
+        <div class="room-tools">
+          <div class="tool-btn" title="검색"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="8" cy="8" r="5"/><path d="M14 14l-3-3"/></svg></div>
+          <div class="tool-btn" title="세부 정보"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="9" r="6.5"/><path d="M9 12v.01M9 6v3"/></svg></div>
+          <div class="tool-btn"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="4" r="1"/><circle cx="9" cy="9" r="1"/><circle cx="9" cy="14" r="1"/></svg></div>
+        </div>
+      </div>
+
+      <div class="status-banner">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="7" cy="7" r="5.5"/><path d="M7 4v3.5L9 9"/></svg>
+        민수는 "일하는 중" 상태예요. 수다·공유 메시지는 민수가 쉴 때 묶어서 알림이 가요.
+      </div>
+
+      <div class="messages">
+        <div class="day-divider"><div class="line"></div><div class="label">오늘</div><div class="line"></div></div>
+
+        <div class="msg-group">
+          <div class="msg-avatar">민</div>
+          <div class="msg-stack">
+            <div class="msg-meta"><span class="sender">민수</span><span>08:44</span></div>
+            <div class="bubble theirs tone-ask">
+              <div class="bubble-tag">🤔 물어봄</div>
+              혹시 오늘 저녁 약속 가능해? 지은이랑 같이 보려고
+            </div>
+            <div class="bubble theirs tone-ask">
+              장소는 강남이나 성수 둘 중에 골라줘
+            </div>
+          </div>
+        </div>
+
+        <div class="msg-group mine">
+          <div class="msg-avatar hide"></div>
+          <div class="msg-stack">
+            <div class="bubble mine">
+              <div class="bubble-tag">💬 수다</div>
+              어 오늘은 좀 늦어질 듯 ㅜ 8시 이후 가능하면 좋겠어
+            </div>
+            <div class="msg-foot"><span>09:12</span><span class="read">읽음</span></div>
+          </div>
+        </div>
+
+        <div class="msg-group">
+          <div class="msg-avatar">민</div>
+          <div class="msg-stack">
+            <div class="msg-meta"><span class="sender">민수</span><span>09:24</span></div>
+            <div class="bubble theirs">
+              오케 성수에서 8시 반으로 할게!
+            </div>
+            <div class="bubble theirs tone-share" style="background:var(--info-light)">
+              <div class="bubble-tag">📎 공유</div>
+              이 가게 한번 가보자
+              <div class="link-preview" style="background:white; border-color:var(--gray-200); margin-top:6px">
+                <div class="link-thumb">🍜</div>
+                <div class="link-info">
+                  <div class="link-title">센터포크 성수점</div>
+                  <div class="link-desc">성수동에 새로 생긴 이탤리안 레스토랑. 파스타가 시그니처.</div>
+                  <div class="link-domain">naver.com</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="align-self: center; padding: 8px 14px; background: var(--gray-100); border-radius: var(--r-full); font-size: 11px; color: var(--gray-500);">
+          📎 공유 메시지는 알림 없이 따라잡기 피드로 전달됩니다
+        </div>
+      </div>
+
+      <div class="composer">
+        <div class="tone-selector">
+          <button class="tone-btn active chat">💬 수다<kbd>⌘1</kbd></button>
+          <button class="tone-btn">🤔 물어봄<kbd>⌘2</kbd></button>
+          <button class="tone-btn">⚡ 급함<kbd>⌘3</kbd></button>
+          <button class="tone-btn">📎 공유<kbd>⌘4</kbd></button>
+          <div class="spacer"></div>
+        </div>
+        <div class="composer-box">
+          <div class="composer-tools">
+            <div class="c-tool"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="3" width="12" height="10" rx="2"/><circle cx="6" cy="7" r="1.2"/><path d="M2 10l3-2 4 3 5-4v6"/></svg></div>
+            <div class="c-tool"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M11 6l-4 4-2-2"/><path d="M5 3h6a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z"/></svg></div>
+            <div class="c-tool"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="8" cy="8" r="6"/><path d="M6 7h.01M10 7h.01M5.5 10c.7.6 1.6 1 2.5 1s1.8-.4 2.5-1"/></svg></div>
+          </div>
+          <textarea class="composer-input" placeholder="메시지 입력… (Enter로 전송, Shift+Enter로 줄바꿈)">좋아, 8시 반에 만나자. 1차는 거기서 하고 2차는 카페 가자</textarea>
+          <button class="send-btn"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 8l12-6-6 12-2-5z"/></svg></button>
+        </div>
+        <div class="composer-hint">
+          <div class="hint-kbds"><span>전송: <kbd>↵</kbd></span><span>줄바꿈: <kbd>⇧↵</kbd></span><span>톤 변경: <kbd>⌘1~4</kbd></span></div>
+          <div>42 / 10,000</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body></html>
