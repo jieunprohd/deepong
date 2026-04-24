@@ -33,7 +33,8 @@
 
 > **"메시지는 언제든 보내도 된다. 알림은 상대방이 받을 준비가 되었을 때만 간다."**
 
-이 문장이 모든 도메인 모델링·설계 결정의 최상위 기준입니다. 이 원칙이 **Communication 컨텍스트**와 **Attention 컨텍스트**를 분리하는 근거이기도 합니다 — 발송은 발송이고 알림은 알림입니다.
+이 문장이 모든 도메인 모델링·설계 결정의 최상위 기준입니다. 이 원칙이 **Communication 컨텍스트**와 **Attention 컨텍스트**를 분리하는 근거이기도 합니다 — 발송은 발송이고 알림은
+알림입니다.
 
 ### 1.3 도메인 비전 (Domain Vision Statement)
 
@@ -60,11 +61,13 @@
 디퐁은 **6개 바운디드 컨텍스트**로 구성됩니다. 각 컨텍스트는 독립된 ubiquitous language와 모델을 가지며, 명시적 계약으로만 통신합니다.
 
 **Core Subdomain (3개)** — 제품의 차별화, 경쟁력, 집중 투자 대상:
+
 - `Communication` — 메시지·톤·대화방
 - `Attention` — 프레즌스·알림·집중 모드
 - `Relationship` — 친구 관계·커뮤니케이션 규범
 
 **Supporting Subdomain (3개)** — 표준적인 기능, 최소 비용으로 구현:
+
 - `Identity` — 사용자 계정·인증·세션
 - `Catchup` — 따라잡기 피드 (읽기 모델)
 - `Workspace` — 업무 시간·캘린더 연동
@@ -73,11 +76,14 @@
 
 > "동일한 이유로 변경되는 것끼리 묶고, 다른 이유로 변경되는 것은 분리한다" — 바운디드 컨텍스트의 핵심
 
-**Identity와 Relationship 분리**: User 자체 관리는 표준적(OAuth, JWT)이지만 친구 관계와 커뮤니케이션 규범은 디퐁만의 독자 개념입니다. Identity가 바뀌어도 Relationship 모델은 그대로여야 합니다.
+**Identity와 Relationship 분리**: User 자체 관리는 표준적(OAuth, JWT)이지만 친구 관계와 커뮤니케이션 규범은 디퐁만의 독자 개념입니다. Identity가 바뀌어도
+Relationship 모델은 그대로여야 합니다.
 
-**Communication과 Attention 분리**: 북극성 철학의 직접 반영입니다. 메시지 전송 로직과 알림 정책이 다른 이유로 변경됩니다. 같은 메시지가 수신자 상태에 따라 다르게 처리되는 건 Attention 컨텍스트의 책임이지 Communication의 책임이 아닙니다.
+**Communication과 Attention 분리**: 북극성 철학의 직접 반영입니다. 메시지 전송 로직과 알림 정책이 다른 이유로 변경됩니다. 같은 메시지가 수신자 상태에 따라 다르게 처리되는 건
+Attention 컨텍스트의 책임이지 Communication의 책임이 아닙니다.
 
-**Catchup을 별도 컨텍스트로**: 따라잡기 피드는 **CQRS의 Read Model**입니다. Communication과 Attention의 이벤트를 구독해 사용자가 보기 편한 형태로 projection만 담당합니다. 쓰기(메시지 전송, 알림 발사)와 완전히 분리됩니다.
+**Catchup을 별도 컨텍스트로**: 따라잡기 피드는 **CQRS의 Read Model**입니다. Communication과 Attention의 이벤트를 구독해 사용자가 보기 편한 형태로 projection만
+담당합니다. 쓰기(메시지 전송, 알림 발사)와 완전히 분리됩니다.
 
 ---
 
@@ -108,14 +114,14 @@
 
 ### 3.2 컨텍스트 관계 유형
 
-| 관계 | 업스트림 | 다운스트림 | 패턴 | 설명 |
-|---|---|---|---|---|
-| R1 | Identity | Relationship | **Open Host** | User 참조를 위한 공개 API 제공 |
-| R2 | Relationship | Communication | **Shared Kernel** | 친구 관계·규범은 공유 개념 |
-| R3 | Relationship | Attention | **Anti-Corruption Layer** | 규범을 Attention 용어로 변환 |
-| R4 | Workspace | Attention | **Customer-Supplier** | 업무시간 변경 시 프레즌스 자동 전환 |
-| R5 | Communication | Attention | **Event Collaboration** | `MessageSent` 이벤트로 소통 |
-| R6 | Communication + Attention | Catchup | **Published Language (이벤트)** | Read Model을 이벤트로 빌드 |
+| 관계 | 업스트림                      | 다운스트림         | 패턴                           | 설명                    |
+|----|---------------------------|---------------|------------------------------|-----------------------|
+| R1 | Identity                  | Relationship  | **Open Host**                | User 참조를 위한 공개 API 제공 |
+| R2 | Relationship              | Communication | **Shared Kernel**            | 친구 관계·규범은 공유 개념       |
+| R3 | Relationship              | Attention     | **Anti-Corruption Layer**    | 규범을 Attention 용어로 변환  |
+| R4 | Workspace                 | Attention     | **Customer-Supplier**        | 업무시간 변경 시 프레즌스 자동 전환  |
+| R5 | Communication             | Attention     | **Event Collaboration**      | `MessageSent` 이벤트로 소통 |
+| R6 | Communication + Attention | Catchup       | **Published Language (이벤트)** | Read Model을 이벤트로 빌드   |
 
 ### 3.3 통신 방식 규칙
 
@@ -132,6 +138,7 @@
 **책임**: 사용자 간 메시지 교환. 대화방, 메시지, 톤 태그, 손들기 UI.
 
 **Ubiquitous Language**:
+
 - `Room` (대화방) — Conversation의 장소
 - `Message` (메시지) — 발송된 의사 표현 단위
 - `Tone` (톤) — 메시지의 의도 (CHAT/ASK/URGENT/SHARE)
@@ -141,11 +148,11 @@
 
 **Aggregates**:
 
-| Aggregate | Root | Invariants |
-|---|---|---|
-| `Room` | Room | 멤버 2~50명, 1:1은 정확히 2명 |
-| `Message` | Message | 톤 필수, Sequence 단조 증가, 멱등성(ClientMessageId) |
-| `Conversation` | Conversation | (선택) 여러 Room을 묶는 개념, v1에는 없음 |
+| Aggregate      | Root         | Invariants                                 |
+|----------------|--------------|--------------------------------------------|
+| `Room`         | Room         | 멤버 2~50명, 1:1은 정확히 2명                      |
+| `Message`      | Message      | 톤 필수, Sequence 단조 증가, 멱등성(ClientMessageId) |
+| `Conversation` | Conversation | (선택) 여러 Room을 묶는 개념, v1에는 없음               |
 
 **주요 도메인 규칙**:
 
@@ -156,6 +163,7 @@
 5. Sequence 발급은 **Domain Service** (RoomSequenceGenerator)로 분리 — 방별 단조 증가 보장.
 
 **Domain Events**:
+
 - `MessageSent` — 메시지 전송됨 (receiverId, tone, content, sequence)
 - `MessageEdited` — 메시지 편집됨
 - `MessageDeleted` — 메시지 삭제됨
@@ -173,6 +181,7 @@
 **책임**: 수신자의 상태 관리. 메시지를 언제·어떻게 알림으로 전환할지 결정. 집중 모드.
 
 **Ubiquitous Language**:
+
 - `Presence` (프레즌스) — 사용자의 현재 가용성 (FREE/WORKING/FOCUS/OFF)
 - `Focus Session` (집중 세션) — 뽀모도로 기반 몰입 시간 단위
 - `Attention Decision` — 메시지를 어떻게 알림할지 결정 (IMMEDIATE/BATCHED/QUEUED/DROPPED)
@@ -181,32 +190,35 @@
 
 **Aggregates**:
 
-| Aggregate | Root | Invariants |
-|---|---|---|
-| `Presence` | Presence | 하나의 User는 정확히 하나의 현재 상태, TTL 기반 자동 OFF |
-| `FocusSession` | FocusSession | start < end, 중복 활성 세션 금지 |
-| `NotificationPolicy` | NotificationPolicy | Tone×Presence 매트릭스 + 사용자 오버라이드 |
+| Aggregate            | Root               | Invariants                             |
+|----------------------|--------------------|----------------------------------------|
+| `Presence`           | Presence           | 하나의 User는 정확히 하나의 현재 상태, TTL 기반 자동 OFF |
+| `FocusSession`       | FocusSession       | start < end, 중복 활성 세션 금지               |
+| `NotificationPolicy` | NotificationPolicy | Tone×Presence 매트릭스 + 사용자 오버라이드         |
 
 **주요 도메인 규칙**:
 
-1. **Attention Decision 매트릭스** — Communication이 `MessageSent` 이벤트를 발행하면, Attention은 수신자의 현재 `Presence`와 메시지의 `Tone`으로 결정:
+1. **Attention Decision 매트릭스** — Communication이 `MessageSent` 이벤트를 발행하면, Attention은 수신자의 현재 `Presence`와 메시지의 `Tone`으로
+   결정:
 
-| 수신자 \ 톤 | CHAT | ASK | URGENT | SHARE |
-|---|---|---|---|---|
-| FREE | IMMEDIATE | IMMEDIATE | IMMEDIATE | IMMEDIATE |
-| WORKING | BATCHED(2h) | IMMEDIATE | IMMEDIATE | BATCHED(2h) |
-| FOCUS | QUEUED | QUEUED | IMMEDIATE_QUIET | QUEUED |
-| OFF | QUEUED | QUEUED | IMMEDIATE | DROPPED |
+| 수신자 \ 톤 | CHAT        | ASK       | URGENT          | SHARE       |
+|---------|-------------|-----------|-----------------|-------------|
+| FREE    | IMMEDIATE   | IMMEDIATE | IMMEDIATE       | IMMEDIATE   |
+| WORKING | BATCHED(2h) | IMMEDIATE | IMMEDIATE       | BATCHED(2h) |
+| FOCUS   | QUEUED      | QUEUED    | IMMEDIATE_QUIET | QUEUED      |
+| OFF     | QUEUED      | QUEUED    | IMMEDIATE       | DROPPED     |
 
 2. `FocusSession` 중에는 `Presence = FOCUS`로 고정. 세션 종료 시 자동으로 이전 상태로 복귀.
 
 3. `Presence`는 **자동 관리 기본값**. 수동 설정 시 24시간 후 자동 관리 복귀.
 
-4. Attention Decision은 **Domain Service** (`AttentionPolicyEvaluator`). Relationship Context의 `CommunicationNorm`을 ACL을 통해 참조.
+4. Attention Decision은 **Domain Service** (`AttentionPolicyEvaluator`). Relationship Context의 `CommunicationNorm`을 ACL을
+   통해 참조.
 
 5. **시간 기반 규칙**: Workspace의 업무시간 변경 → `WorkHoursChanged` 이벤트 → Presence 자동 전환.
 
 **Domain Events**:
+
 - `PresenceChanged` — 상태 변경됨
 - `FocusSessionStarted` — 집중 시작
 - `FocusSessionEnded` — 집중 종료 (정상 완료/중도 해제 구분)
@@ -223,6 +235,7 @@
 **책임**: 친구 관계 그래프와 **커뮤니케이션 규범**. 친구별 소통 규칙의 진실 공급원.
 
 **Ubiquitous Language**:
+
 - `Friendship` (친구 관계) — 양방향 수락된 연결
 - `Invitation` (초대) — 친구 추가를 위한 1회용 토큰
 - `Communication Norm` (커뮤니케이션 규범) — 친구 관계별 소통 규칙
@@ -230,11 +243,11 @@
 
 **Aggregates**:
 
-| Aggregate | Root | Invariants |
-|---|---|---|
-| `Friendship` | Friendship | 양방향, 자기 자신 X, 중복 X |
-| `Invitation` | Invitation | 만료 시간, 사용 횟수 제한 |
-| `CommunicationNorm` | Norm | Friendship 종속, owner 관점 비대칭 |
+| Aggregate           | Root       | Invariants                  |
+|---------------------|------------|-----------------------------|
+| `Friendship`        | Friendship | 양방향, 자기 자신 X, 중복 X          |
+| `Invitation`        | Invitation | 만료 시간, 사용 횟수 제한             |
+| `CommunicationNorm` | Norm       | Friendship 종속, owner 관점 비대칭 |
 
 **주요 도메인 규칙**:
 
@@ -253,6 +266,7 @@
 5. `Invitation` 수락 시 `FriendshipEstablished` 이벤트 발행. Communication과 Attention 컨텍스트가 이 이벤트 구독.
 
 **Domain Events**:
+
 - `FriendshipRequested` — 요청 발송
 - `FriendshipEstablished` — 양방향 수락 완료
 - `FriendshipRemoved` — 관계 해제
@@ -270,15 +284,18 @@
 **책임**: 계정·인증·세션. 다른 컨텍스트는 Identity의 `UserId`만 참조.
 
 **Aggregates**:
+
 - `User` (profile 포함) — Identity의 루트 애그리게잇
 - `AuthSession` — JWT refresh 토큰·디바이스 세션
 - `OAuthConnection` — Kakao/Google 연결
 
 **주요 규칙**:
+
 - `User` 삭제 시 다른 컨텍스트에는 `UserDeleted` 이벤트만 전달 (해당 컨텍스트가 자체 정리)
 - `User` 정보 변경은 Open Host API로만 전파 — 다른 컨텍스트는 이 API를 통해 캐싱
 
 **Domain Events**:
+
 - `UserRegistered` / `UserDeleted`
 - `OAuthConnected`
 - `LoginSucceeded`
@@ -292,22 +309,26 @@
 **책임**: 따라잡기 피드. 다른 컨텍스트의 도메인 이벤트를 구독해서 **읽기 전용 projection** 만듦.
 
 **특징**:
+
 - **Write 모델 없음**. 피드 항목은 projection 결과일 뿐.
 - Redis를 저장소로 사용 (TTL 1h).
 - Event Sourcing 스타일의 빌드, 아니면 필요할 때만 on-demand 빌드.
 
 **구독하는 이벤트**:
+
 - `MessageSent` (Communication) — 피드에 메시지 후보로 추가
 - `NotificationDispatched` / `NotificationQueued` (Attention) — 피드 분류 확정
 - `FocusSessionEnded` (Attention) — 피드 재생성 트리거
 - `PresenceChanged` (Attention) — OFF → 온라인 복귀 시 피드 트리거
 
 **Read Models**:
+
 - `UrgentSection`: ASK + 미답 메시지 모음
 - `SharedSection`: SHARE 링크/이미지 모음
 - `ChatDigest`: CHAT 요약 카드
 
 **Domain Events** (피드 내 사용자 행동):
+
 - `FeedItemOpened`
 - `FeedItemDeferred` (나중에)
 - `FeedItemDismissed` (읽음 처리)
@@ -321,10 +342,12 @@
 **책임**: 업무 시간 프로필·Google 캘린더 연동. Attention 컨텍스트의 자동 전환 규칙을 위한 **정보 공급원**.
 
 **Aggregates**:
+
 - `WorkSchedule` — 업무 요일·시간·점심 예외
 - `CalendarConnection` — Google Calendar OAuth·이벤트 polling
 
 **Domain Events**:
+
 - `WorkHoursChanged` — 업무 시간 변경
 - `CalendarEventStarted` / `CalendarEventEnded` — 캘린더 이벤트
 - `CalendarConnected` / `CalendarDisconnected`
@@ -346,6 +369,7 @@
 ### 6.2 주요 이벤트 흐름
 
 **시나리오 1: 1:1 메시지 전송 → 알림**
+
 ```
 1. POST /messages 요청 (Communication)
 2. Relationship Context에서 Norm 조회 (동기, ACL)
@@ -360,6 +384,7 @@
 ```
 
 **시나리오 2: 집중 모드 종료 → 대기 알림 처리**
+
 ```
 1. 사용자 ESC (Attention)
 2. Attention: FocusSessionEnded 이벤트 발행
@@ -368,6 +393,7 @@
 ```
 
 **시나리오 3: 친구 수락 → 대화 준비**
+
 ```
 1. POST /friendship/accept (Relationship)
 2. Relationship: Friendship ACCEPTED 전환
@@ -388,13 +414,13 @@
 
 각 컨텍스트별로 **같은 단어가 다른 의미**를 가질 수 있습니다. 번역은 ACL이 담당.
 
-| 단어 | Communication | Attention | Relationship | Identity |
-|---|---|---|---|---|
-| User | 발신자/수신자 참조 | 상태의 주체 | Peer | 루트 애그리게잇 |
-| Message | 본체 | 알림 트리거 | — | — |
-| Tone | 애그리게잇의 속성 | 정책 입력값 | Norm의 기본값 | — |
-| Norm | (참조만) | (참조만) | 애그리게잇 | — |
-| Presence | — | 애그리게잇 | 공유 설정 대상 | — |
+| 단어       | Communication | Attention | Relationship | Identity |
+|----------|---------------|-----------|--------------|----------|
+| User     | 발신자/수신자 참조    | 상태의 주체    | Peer         | 루트 애그리게잇 |
+| Message  | 본체            | 알림 트리거    | —            | —        |
+| Tone     | 애그리게잇의 속성     | 정책 입력값    | Norm의 기본값    | —        |
+| Norm     | (참조만)         | (참조만)     | 애그리게잇        | —        |
+| Presence | —             | 애그리게잇     | 공유 설정 대상     | —        |
 
 **원칙**: 한 컨텍스트 내에서는 한 단어가 한 의미. 번역이 필요하면 ACL로 명시적으로.
 
@@ -458,19 +484,31 @@ apps/api/src/
 ```typescript
 // ❌ 나쁨
 class Message {
-  constructor(public tone: string, public content: string) {}
+    constructor(public tone: string, public content: string) {
+    }
 }
 
 // ✅ 좋음
 class Tone {
-  private constructor(readonly value: 'CHAT' | 'ASK' | 'URGENT' | 'SHARE') {}
-  static chat() { return new Tone('CHAT'); }
-  static urgent() { return new Tone('URGENT'); }
-  canBypassFocus(): boolean { return this.value === 'URGENT'; }
+    private constructor(readonly value: 'CHAT' | 'ASK' | 'URGENT' | 'SHARE') {
+    }
+
+    static chat() {
+        return new Tone('CHAT');
+    }
+
+    static urgent() {
+        return new Tone('URGENT');
+    }
+
+    canBypassFocus(): boolean {
+        return this.value === 'URGENT';
+    }
 }
 
 class Message {
-  constructor(public tone: Tone, public content: MessageContent) {}
+    constructor(public tone: Tone, public content: MessageContent) {
+    }
 }
 ```
 
@@ -481,15 +519,19 @@ Repository는 **도메인 레이어에 인터페이스**, **인프라 레이어�
 ```typescript
 // domain/message/message.repository.ts
 export interface MessageRepository {
-  findById(id: MessageId): Promise<Message | null>;
-  save(message: Message): Promise<void>;
-  nextSequence(roomId: RoomId): Promise<Sequence>;  // Redis INCR
+    findById(id: MessageId): Promise<Message | null>;
+
+    save(message: Message): Promise<void>;
+
+    nextSequence(roomId: RoomId): Promise<Sequence>;  // Redis INCR
 }
 
 // infrastructure/persistence/prisma-message.repository.ts
 export class PrismaMessageRepository implements MessageRepository {
-  constructor(private prisma: PrismaService, private redis: RedisService) {}
-  // ... 구현
+    constructor(private prisma: PrismaService, private redis: RedisService) {
+    }
+
+    // ... 구현
 }
 ```
 
@@ -510,14 +552,14 @@ export class PrismaMessageRepository implements MessageRepository {
 
 ### 9.1 컨텍스트별 저장소 매핑
 
-| 컨텍스트 | 주 저장소 | 보조 저장소 | 비고 |
-|---|---|---|---|
-| Communication | MySQL (핫 90일) | S3 Parquet (콜드), Meilisearch (검색) | Message 월별 파티션 |
-| Attention | Redis (실시간) | MySQL (지표용 스냅샷) | Presence는 Redis 전용 |
-| Relationship | MySQL | Redis 캐시 (Norm) | 변경 적고 읽기 많음 |
-| Identity | MySQL | Redis (JWT 블랙리스트) | 표준 |
-| Catchup | Redis | — | 순수 Read Model, 쓰기 없음 |
-| Workspace | MySQL | — | 저빈도 변경 |
+| 컨텍스트          | 주 저장소         | 보조 저장소                            | 비고                   |
+|---------------|---------------|-----------------------------------|----------------------|
+| Communication | MySQL (핫 90일) | S3 Parquet (콜드), Meilisearch (검색) | Message 월별 파티션       |
+| Attention     | Redis (실시간)   | MySQL (지표용 스냅샷)                   | Presence는 Redis 전용   |
+| Relationship  | MySQL         | Redis 캐시 (Norm)                   | 변경 적고 읽기 많음          |
+| Identity      | MySQL         | Redis (JWT 블랙리스트)                 | 표준                   |
+| Catchup       | Redis         | —                                 | 순수 Read Model, 쓰기 없음 |
+| Workspace     | MySQL         | —                                 | 저빈도 변경               |
 
 ### 9.2 이벤트 저장
 
@@ -530,29 +572,34 @@ export class PrismaMessageRepository implements MessageRepository {
 ## 10. Phase 로드맵
 
 ### Phase 1 (Week 1~3) — 뼈대 구축
+
 - Identity, Relationship 컨텍스트 기본
 - Communication 컨텍스트의 Room, Message 기본
 - 이벤트 버스 인프라 (in-memory)
 - 검증: 친구 추가 → 1:1 메시지 전송
 
 ### Phase 2 (Week 4~7) ⭐ MVP — 핵심 차별화
+
 - Communication: Tone, HandRaise
 - Relationship: CommunicationNorm
 - Attention: Presence, AttentionPolicyEvaluator, 알림 파이프라인
 - 검증: 톤×프레즌스 매트릭스 정상 동작
 
 ### Phase 3 (Week 8~10) — 몰입 경험
+
 - Attention: FocusSession
 - Catchup 컨텍스트 전체
 - Communication: 검색(Meilisearch), 미디어·OG 프리뷰
 - 검증: 집중 종료 후 피드 생성
 
 ### Phase 4 (Week 11~13) — 안정화
+
 - WebSocket 재연결 견고성
 - 이벤트 보관·재처리 메커니즘
 - 성능 최적화 (가상 스크롤, 캐시 워밍)
 
 ### Phase 5 (Week 14~15) — 출시
+
 - 프로덕션 배포, 모니터링, Electron 공증
 
 ---
@@ -562,14 +609,17 @@ export class PrismaMessageRepository implements MessageRepository {
 ### 11.1 DDD 도입 리스크
 
 **R-DDD-1: 3인팀에 DDD는 과한가?**
+
 - 리스크: 도메인 모델링 오버헤드가 Phase 1~2 속도를 30% 이상 늦출 수 있음
 - 완화: Core 컨텍스트(Communication·Attention·Relationship)에만 엄격 적용. Supporting은 CRUD 수준으로.
 
 **R-DDD-2: 이벤트 유실**
+
 - 리스크: in-memory 버스는 프로세스 크래시 시 이벤트 유실
 - 완화: MVP 동안은 허용. Phase 3에 outbox 패턴 도입.
 
 **R-DDD-3: 결과적 일관성 혼란**
+
 - 리스크: 메시지 전송 후 피드에 즉시 안 보이면 사용자 혼란
 - 완화: 클라이언트 낙관적 업데이트 + 서버 이벤트 사용. 피드 재생성 < 1초 목표.
 
@@ -598,26 +648,26 @@ export class PrismaMessageRepository implements MessageRepository {
 
 ## 부록 B. 기능 ↔ 컨텍스트 매핑
 
-| 기능 ID | 기능명 | 컨텍스트 | Aggregate |
-|---|---|---|---|
-| A1~A2 | 로그인·OAuth | Identity | User, OAuthConnection |
-| A3 | 프로필 | Identity | User |
-| A4 | 온보딩 | (cross-context) | — |
-| A5~A7 | 친구 초대 | Relationship | Invitation |
-| A8 | 친구 수락 | Relationship | Friendship |
-| A9 | 커뮤니케이션 규범 | Relationship | CommunicationNorm |
-| A10~A12 | 설정 | Identity / Workspace / Relationship | 각자 |
-| A13 | 2FA | Identity | User |
-| B1, B7 | 대화방 | Communication | Room |
-| B2~B5 | 메시지 기본 | Communication | Message |
-| B6 | 톤 태그 | Communication | Message (Tone VO) |
-| B8 | 손들기 | Communication | HandRaise |
-| B9 | 읽음 표시 | Communication | Message |
-| B11 | 검색 | Communication | (Read) |
-| C5~C6 | 프레즌스 | Attention | Presence |
-| C7~C9 | 알림 파이프라인 | Attention | NotificationPolicy |
-| C10~C11 | 집중 모드 | Attention | FocusSession |
-| C12~C13 | 따라잡기 피드 | Catchup | (Read Model) |
+| 기능 ID   | 기능명       | 컨텍스트                                | Aggregate             |
+|---------|-----------|-------------------------------------|-----------------------|
+| A1~A2   | 로그인·OAuth | Identity                            | User, OAuthConnection |
+| A3      | 프로필       | Identity                            | User                  |
+| A4      | 온보딩       | (cross-context)                     | —                     |
+| A5~A7   | 친구 초대     | Relationship                        | Invitation            |
+| A8      | 친구 수락     | Relationship                        | Friendship            |
+| A9      | 커뮤니케이션 규범 | Relationship                        | CommunicationNorm     |
+| A10~A12 | 설정        | Identity / Workspace / Relationship | 각자                    |
+| A13     | 2FA       | Identity                            | User                  |
+| B1, B7  | 대화방       | Communication                       | Room                  |
+| B2~B5   | 메시지 기본    | Communication                       | Message               |
+| B6      | 톤 태그      | Communication                       | Message (Tone VO)     |
+| B8      | 손들기       | Communication                       | HandRaise             |
+| B9      | 읽음 표시     | Communication                       | Message               |
+| B11     | 검색        | Communication                       | (Read)                |
+| C5~C6   | 프레즌스      | Attention                           | Presence              |
+| C7~C9   | 알림 파이프라인  | Attention                           | NotificationPolicy    |
+| C10~C11 | 집중 모드     | Attention                           | FocusSession          |
+| C12~C13 | 따라잡기 피드   | Catchup                             | (Read Model)          |
 
 ---
 
