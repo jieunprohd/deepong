@@ -1,4 +1,4 @@
-# 딥워크 백엔드 기능명세서 (Phase 1)
+# 디퐁 백엔드 기능명세서 (Phase 1)
 
 > **Scope**: Phase 1 뼈대 (Identity + Relationship 기본 + Communication Room/Message 기본)
 > **검증 목표**: 가입 → 친구 초대 → 수락 → 1:1 방 생성 → 메시지 송수신
