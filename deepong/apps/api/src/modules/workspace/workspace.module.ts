@@ -1,4 +1,9 @@
 import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { Workspace } from './domain/workspace.entity';
 
-@Module({})
+@Module({
+  imports: [TypeOrmModule.forFeature([Workspace])],
+  exports: [TypeOrmModule],
+})
 export class WorkspaceModule {}

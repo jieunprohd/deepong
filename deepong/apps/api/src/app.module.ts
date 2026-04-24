@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { join } from 'path';
 import { DatabaseModule } from './shared/database/database.module';
 import { EventBusModule } from './shared/event-bus/event-bus.module';
 import { IdentityModule } from './modules/identity/identity.module';
@@ -11,7 +12,10 @@ import { WorkspaceModule } from './modules/workspace/workspace.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: join(__dirname, '..', '.env'),
+    }),
     DatabaseModule,
     EventBusModule,
     IdentityModule,
