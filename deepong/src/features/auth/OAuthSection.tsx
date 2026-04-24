@@ -27,10 +27,21 @@ type OAuthButtonProps = {
     children: React.ReactNode;
 };
 
+const
+    OAUTH_URLS: Record<OAuthVariant, string> = {
+        google: "http://localhost:4000/api/v1/auth/google",
+        kakao: "http://localhost:4000/api/v1/auth/kakao",
+    };
+
 function OAuthButton({variant, children}: OAuthButtonProps) {
+    const handleClick = () => {
+        window.location.href = OAUTH_URLS[variant];
+    };
+
     return (
         <button
             type="button"
+            onClick={handleClick}
             className={`flex h-12 items-center justify-center gap-2.5 rounded-md text-sm font-medium transition-colors ${OAUTH_STYLES[variant]}`}
         >
             {children}
