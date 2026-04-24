@@ -1,51 +1,94 @@
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/variable/pretendardvariable.css");
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  /* Brand */
+  --color-brand: #2f6bff;
+  --color-brand-hover: #1f5aeb;
+  --color-brand-light: #eaf0ff;
+  --color-brand-subtle: #f4f7ff;
+
+  /* Neutral (Toss-style cool gray) — overrides Tailwind default gray */
+  --color-gray-50: #f9fafb;
+  --color-gray-100: #f2f4f6;
+  --color-gray-200: #e5e8eb;
+  --color-gray-300: #d1d6db;
+  --color-gray-400: #b0b8c1;
+  --color-gray-500: #8b95a1;
+  --color-gray-600: #6b7684;
+  --color-gray-700: #4e5968;
+  --color-gray-800: #333d4b;
+  --color-gray-900: #191f28;
+
+  /* Semantic */
+  --color-success: #00c471;
+  --color-success-light: #e6f9f1;
+  --color-warning: #ff9500;
+  --color-warning-light: #fff4e5;
+  --color-danger: #f04452;
+  --color-danger-light: #feecee;
+  --color-info: #3182f6;
+  --color-info-light: #e8f2fe;
+
+  /* Tone tags */
+  --color-tone-chat: #8b95a1;
+  --color-tone-chat-bg: #f2f4f6;
+  --color-tone-ask: #f59e0b;
+  --color-tone-ask-bg: #fef4e2;
+  --color-tone-urgent: #f04452;
+  --color-tone-urgent-bg: #feecee;
+  --color-tone-share: #3182f6;
+  --color-tone-share-bg: #e8f2fe;
+
+  /* Presence */
+  --color-presence-free: #00c471;
+  --color-presence-working: #ff9500;
+  --color-presence-focus: #3182f6;
+  --color-presence-off: #b0b8c1;
+
+  /* Font */
+  --font-sans:
+    "Pretendard Variable", "Pretendard", -apple-system, BlinkMacSystemFont,
+    sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", monospace;
+
+  /* Radius */
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+
+  /* Shadow */
+  --shadow-xs: 0 1px 2px rgba(25, 31, 40, 0.04);
+  --shadow-sm: 0 2px 8px rgba(25, 31, 40, 0.06);
+  --shadow-md: 0 4px 16px rgba(25, 31, 40, 0.08);
+  --shadow-lg: 0 12px 32px rgba(25, 31, 40, 0.12);
+  --shadow-xl: 0 20px 48px rgba(25, 31, 40, 0.18);
+
+  /* Easing */
+  --ease-soft: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  html,
+  body {
+    height: 100%;
   }
-}
 
-html {
-  height: 100%;
-}
+  body {
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.5;
+    letter-spacing: -0.01em;
+    color: var(--color-gray-900);
+    background: #ffffff;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 
-html,
-body {
-  max-width: 100vw;
-  overflow-x: hidden;
-}
-
-body {
-  min-height: 100%;
-  display: flex;
-  flex-direction: column;
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-* {
-  box-sizing: border-box;
-  padding: 0;
-  margin: 0;
-}
-
-a {
-  color: inherit;
-  text-decoration: none;
-}
-
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
+  button {
+    cursor: pointer;
   }
 }
