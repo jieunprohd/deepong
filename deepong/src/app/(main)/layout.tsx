@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
+import { useEffect } from "react";
 
 export default function MainLayout({
   children,
@@ -11,17 +12,18 @@ export default function MainLayout({
   const { user, isLoading, isAuthenticated, logout } = useAuth();
   const router = useRouter();
 
-  if (isLoading) {
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.replace("/auth");
+    }
+  }, [isLoading, isAuthenticated, router]);
+
+  if (isLoading || !isAuthenticated) {
     return (
       <div className="flex h-screen items-center justify-center">
         <p className="text-sm text-gray-400">로딩 중...</p>
       </div>
     );
-  }
-
-  if (!isAuthenticated) {
-    router.replace("/auth");
-    return null;
   }
 
   return (
