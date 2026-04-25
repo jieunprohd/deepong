@@ -1,94 +1,94 @@
-@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/variable/pretendardvariable.css");
 @import "tailwindcss";
 
-@theme {
+/* 디퐁 디자인 시스템 토큰 (claudedocs/design/prototype/tokens.css 기반) */
+:root {
   /* Brand */
-  --color-brand: #2f6bff;
-  --color-brand-hover: #1f5aeb;
-  --color-brand-light: #eaf0ff;
-  --color-brand-subtle: #f4f7ff;
+  --brand-primary: #2f6bff;
+  --brand-primary-hover: #1f5aeb;
+  --brand-primary-light: #eaf0ff;
+  --brand-primary-subtle: #f4f7ff;
 
-  /* Neutral (Toss-style cool gray) — overrides Tailwind default gray */
-  --color-gray-50: #f9fafb;
-  --color-gray-100: #f2f4f6;
-  --color-gray-200: #e5e8eb;
-  --color-gray-300: #d1d6db;
-  --color-gray-400: #b0b8c1;
-  --color-gray-500: #8b95a1;
-  --color-gray-600: #6b7684;
-  --color-gray-700: #4e5968;
-  --color-gray-800: #333d4b;
-  --color-gray-900: #191f28;
+  /* Neutral (Toss-style cool gray) */
+  --gray-50: #f9fafb;
+  --gray-100: #f2f4f6;
+  --gray-200: #e5e8eb;
+  --gray-300: #d1d6db;
+  --gray-400: #b0b8c1;
+  --gray-500: #8b95a1;
+  --gray-600: #6b7684;
+  --gray-700: #4e5968;
+  --gray-800: #333d4b;
+  --gray-900: #191f28;
 
   /* Semantic */
-  --color-success: #00c471;
-  --color-success-light: #e6f9f1;
-  --color-warning: #ff9500;
-  --color-warning-light: #fff4e5;
-  --color-danger: #f04452;
-  --color-danger-light: #feecee;
-  --color-info: #3182f6;
-  --color-info-light: #e8f2fe;
-
-  /* Tone tags */
-  --color-tone-chat: #8b95a1;
-  --color-tone-chat-bg: #f2f4f6;
-  --color-tone-ask: #f59e0b;
-  --color-tone-ask-bg: #fef4e2;
-  --color-tone-urgent: #f04452;
-  --color-tone-urgent-bg: #feecee;
-  --color-tone-share: #3182f6;
-  --color-tone-share-bg: #e8f2fe;
+  --success: #00c471;
+  --success-light: #e6f9f1;
+  --warning: #ff9500;
+  --warning-light: #fff4e5;
+  --danger: #f04452;
+  --danger-light: #feecee;
+  --info: #3182f6;
+  --info-light: #e8f2fe;
 
   /* Presence */
-  --color-presence-free: #00c471;
-  --color-presence-working: #ff9500;
-  --color-presence-focus: #3182f6;
-  --color-presence-off: #b0b8c1;
+  --presence-free: #00c471;
+  --presence-working: #ff9500;
+  --presence-focus: #3182f6;
+  --presence-off: #b0b8c1;
 
-  /* Font */
-  --font-sans:
-    "Pretendard Variable", "Pretendard", -apple-system, BlinkMacSystemFont,
-    sans-serif;
-  --font-mono: "JetBrains Mono", "SF Mono", monospace;
+  /* Surfaces */
+  --bg-body: #ffffff;
+  --bg-surface: #ffffff;
+  --bg-subtle: #f9fafb;
+  --bg-panel: #f2f4f6;
 
   /* Radius */
-  --radius-xs: 6px;
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 20px;
-  --radius-2xl: 24px;
+  --r-xs: 6px;
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-xl: 20px;
+  --r-2xl: 24px;
+  --r-full: 9999px;
 
-  /* Shadow */
+  /* Shadows */
   --shadow-xs: 0 1px 2px rgba(25, 31, 40, 0.04);
   --shadow-sm: 0 2px 8px rgba(25, 31, 40, 0.06);
   --shadow-md: 0 4px 16px rgba(25, 31, 40, 0.08);
   --shadow-lg: 0 12px 32px rgba(25, 31, 40, 0.12);
   --shadow-xl: 0 20px 48px rgba(25, 31, 40, 0.18);
 
-  /* Easing */
-  --ease-soft: cubic-bezier(0.4, 0, 0.2, 1);
+  /* Transitions */
+  --t-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --t-base: 240ms cubic-bezier(0.4, 0, 0.2, 1);
+  --t-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-@layer base {
-  html,
-  body {
-    height: 100%;
-  }
+@theme {
+  --color-brand: var(--brand-primary);
+  --color-brand-hover: var(--brand-primary-hover);
+  --color-danger: var(--danger);
+}
 
-  body {
-    font-family: var(--font-sans);
-    font-size: 15px;
-    line-height: 1.5;
-    letter-spacing: -0.01em;
-    color: var(--color-gray-900);
-    background: #ffffff;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-  }
-
-  button {
-    cursor: pointer;
-  }
+/* Base styles */
+body {
+  background: var(--bg-body);
+  color: var(--gray-900);
+  font-family:
+    "Pretendard Variable",
+    Pretendard,
+    -apple-system,
+    BlinkMacSystemFont,
+    system-ui,
+    Roboto,
+    "Helvetica Neue",
+    "Segoe UI",
+    "Apple SD Gothic Neo",
+    "Noto Sans KR",
+    "Malgun Gothic",
+    "Apple Color Emoji",
+    "Segoe UI Emoji",
+    "Segoe UI Symbol",
+    sans-serif;
+  letter-spacing: -0.01em;
 }
