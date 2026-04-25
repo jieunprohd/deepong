@@ -3,7 +3,11 @@
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 
-export default function HomePage() {
+export default function MainLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const { user, isLoading, isAuthenticated, logout } = useAuth();
   const router = useRouter();
 
@@ -61,14 +65,7 @@ export default function HomePage() {
 
         {/* 컨텐츠 영역 */}
         <section className="flex flex-1 items-center justify-center bg-white">
-          <div className="text-center">
-            <p className="text-lg font-medium text-gray-800">
-              환영합니다, {user!.nickname}님!
-            </p>
-            <p className="mt-1 text-sm text-gray-400">
-              대화를 시작하려면 친구를 추가하세요
-            </p>
-          </div>
+          {children}
         </section>
       </main>
     </div>
