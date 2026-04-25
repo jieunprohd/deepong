@@ -5,7 +5,6 @@ import {Suspense, useEffect} from "react";
 
 function CallbackContent() {
     const params = useSearchParams();
-    console.log
     const router = useRouter();
 
     const accessToken = params.get("accessToken");

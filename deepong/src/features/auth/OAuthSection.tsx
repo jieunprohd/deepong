@@ -27,8 +27,7 @@ type OAuthButtonProps = {
     children: React.ReactNode;
 };
 
-const
-    OAUTH_URLS: Record<OAuthVariant, string> = {
+const OAUTH_URLS: Record<OAuthVariant, string> = {
         google: "http://localhost:4000/api/v1/auth/google",
         kakao: "http://localhost:4000/api/v1/auth/kakao",
     };
