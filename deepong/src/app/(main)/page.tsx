@@ -13,6 +13,9 @@ export default function HomePage() {
       <p className="mt-1 text-sm text-gray-400">
         대화를 시작하려면 친구를 추가하세요
       </p>
+      <p classNam="mt-1 text-sm text-gray-400">
+        husky test
+      </p>
     </div>
   );
 }
