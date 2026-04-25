@@ -4,12 +4,10 @@ services:
     container_name: deepong-mysql
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: root
+      MYSQL_ROOT_PASSWORD: deepong1234!
       MYSQL_DATABASE: deepong
-      MYSQL_USER: deepong
-      MYSQL_PASSWORD: deepong
     ports:
-      - '3306:3306'
+      - '3307:3306'
     volumes:
       - mysql_data:/var/lib/mysql
     command:
