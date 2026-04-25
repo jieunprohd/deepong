@@ -11,6 +11,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import { ConfigService } from '@nestjs/config';
 import { Request, Response } from 'express';
 import { SignupUseCase } from '../application/signup.usecase';
 import { LoginUseCase } from '../application/login.usecase';
@@ -24,6 +25,8 @@ import { RefreshDto } from '../application/dto/refresh.dto';
 
 @Controller('auth')
 export class AuthController {
+  private readonly frontendUrl: string;
+
   constructor(
     private readonly signupUseCase: SignupUseCase,
     private readonly loginUseCase: LoginUseCase,
@@ -31,7 +34,13 @@ export class AuthController {
     private readonly logoutUseCase: LogoutUseCase,
     private readonly oauthLoginUseCase: OAuthLoginUseCase,
     private readonly kakaoStrategy: KakaoStrategy,
-  ) {}
+    config: ConfigService,
+  ) {
+    this.frontendUrl = config.get<string>(
+      'FRONTEND_URL',
+      'http://localhost:3000',
+    )!;
+  }
 
   @Post('signup')
   async signup(@Body() dto: SignupDto) {
@@ -100,11 +109,11 @@ export class AuthController {
         refreshToken: result.refreshToken,
       });
 
-      res.redirect(`http://localhost:3000/auth/callback?${params.toString()}`);
+      res.redirect(`${this.frontendUrl}/auth/callback?${params.toString()}`);
     } catch (err) {
       console.error('[Kakao Callback Error]', err);
       res.redirect(
-        `http://localhost:3000/auth?error=${encodeURIComponent(String(err))}`,
+        `${this.frontendUrl}/auth?error=${encodeURIComponent(String(err))}`,
       );
     }
   }
@@ -136,6 +145,6 @@ export class AuthController {
       refreshToken: result.refreshToken,
     });
 
-    res.redirect(`http://localhost:3000/auth/callback?${params.toString()}`);
+    res.redirect(`${this.frontendUrl}/auth/callback?${params.toString()}`);
   }
 }

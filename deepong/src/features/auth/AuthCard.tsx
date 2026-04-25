@@ -1,7 +1,6 @@
 "use client";
 
 import {useState} from "react";
-import {useRouter} from "next/navigation";
 import {AuthTabs} from "./AuthTabs";
 import {Field} from "./Field";
 import {OAuthSection} from "./OAuthSection";
@@ -13,7 +12,6 @@ const INPUT_CLASS =
     "h-12 w-full rounded-md border border-gray-200 px-4 text-[15px] transition-colors focus:border-brand focus:outline-none";
 
 export function AuthCard() {
-    const router = useRouter();
     const [tab, setTab] = useState<AuthTab>("login");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -49,7 +47,7 @@ export function AuthCard() {
 
             localStorage.setItem("accessToken", data.accessToken);
             localStorage.setItem("refreshToken", data.refreshToken);
-            router.replace("/");
+            window.location.href = "/";
         } catch {
             setError("서버에 연결할 수 없습니다.");
         } finally {

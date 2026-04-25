@@ -16,8 +16,7 @@ function CallbackContent() {
         localStorage.setItem("accessToken", accessToken);
         localStorage.setItem("refreshToken", refreshToken);
 
-        // TODO: 메인 화면 경로로 변경
-        router.replace("/");
+        window.location.href = "/";
     }, [accessToken, refreshToken, router]);
 
     if (!accessToken || !refreshToken) {
