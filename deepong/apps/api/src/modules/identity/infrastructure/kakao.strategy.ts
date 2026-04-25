@@ -1,92 +1,79 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { PassportStrategy } from '@nestjs/passport';
-import { Strategy } from 'passport-oauth2';
+
+interface KakaoOAuthProfile {
+  provider: 'kakao';
+  providerUserId: string;
+  email: string | null;
+  nickname: string | null;
+  avatarUrl: string | null;
+}
 
 @Injectable()
-export class KakaoStrategy extends PassportStrategy(Strategy, 'kakao') {
-  private readonly kakaoClientID: string;
-  private readonly kakaoClientSecret: string;
+export class KakaoStrategy {
+  private readonly clientID: string;
+  private readonly callbackURL: string;
 
-  constructor(config: ConfigService) {
-    const clientID = config.get<string>('KAKAO_CLIENT_ID')!;
-    const clientSecret = config.get<string>('KAKAO_CLIENT_SECRET')!;
-
-    super({
-      authorizationURL: 'https://kauth.kakao.com/oauth/authorize',
-      tokenURL: 'https://kauth.kakao.com/oauth/token',
-      clientID,
-      clientSecret,
-      callbackURL: config.get<string>(
-        'KAKAO_CALLBACK_URL',
-        'http://localhost:4000/api/v1/auth/kakao/callback',
-      )!,
-    });
-
-    this.kakaoClientID = clientID;
-    this.kakaoClientSecret = clientSecret;
-
-    // 토큰 교환을 직접 처리
-    (this as any)._oauth2.getOAuthAccessToken = (
-      code: string,
-      params: Record<string, string>,
-      callback: (err: Error | null, accessToken?: string, refreshToken?: string, results?: any) => void,
-    ) => {
-      const tokenParams: Record<string, string> = {
-        grant_type: 'authorization_code',
-        client_id: this.kakaoClientID,
-        redirect_uri: params.redirect_uri,
-        code,
-      };
-      if (this.kakaoClientSecret) {
-        tokenParams.client_secret = this.kakaoClientSecret;
-      }
-      console.log('[Kakao Token Request]', { ...tokenParams, code: '***' });
-      const body = new URLSearchParams(tokenParams);
-
-      fetch('https://kauth.kakao.com/oauth/token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: body.toString(),
-      })
-        .then(async (res) => {
-          const json = await res.json();
-          if (json.error) {
-            console.error('[Kakao Token Error]', json);
-            return callback(new Error(`${json.error}: ${json.error_description}`));
-          }
-          callback(null, json.access_token, json.refresh_token, json);
-        })
-        .catch((err) => callback(err));
-    };
+  constructor(private readonly config: ConfigService) {
+    this.clientID = config.get<string>('KAKAO_CLIENT_ID')!;
+    this.callbackURL = config.get<string>(
+      'KAKAO_CALLBACK_URL',
+      'http://localhost:4000/api/v1/auth/kakao/callback',
+    )!;
   }
 
-  async validate(
-    accessToken: string,
-    _refreshToken: string,
-    _profile: unknown,
-    done: (error: Error | null, user?: Record<string, unknown>) => void,
-  ): Promise<void> {
-    try {
-      const res = await fetch('https://kapi.kakao.com/v2/user/me', {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-      const json = await res.json();
+  getAuthorizationURL(): string {
+    const params = new URLSearchParams({
+      response_type: 'code',
+      client_id: this.clientID,
+      redirect_uri: this.callbackURL,
+      scope: 'profile_nickname profile_image account_email',
+    });
+    return `https://kauth.kakao.com/oauth/authorize?${params.toString()}`;
+  }
 
-      const kakaoAccount = json.kakao_account ?? {};
-      const kakaoProfile = kakaoAccount.profile ?? {};
+  async exchangeCodeForProfile(code: string): Promise<KakaoOAuthProfile> {
+    const accessToken = await this.getAccessToken(code);
+    return this.getUserProfile(accessToken);
+  }
 
-      const user = {
-        provider: 'kakao' as const,
-        providerUserId: String(json.id),
-        email: kakaoAccount.email ?? null,
-        nickname: kakaoProfile.nickname ?? null,
-        avatarUrl: kakaoProfile.profile_image_url ?? null,
-      };
+  private async getAccessToken(code: string): Promise<string> {
+    const body = new URLSearchParams({
+      grant_type: 'authorization_code',
+      client_id: this.clientID,
+      redirect_uri: this.callbackURL,
+      code,
+    });
 
-      done(null, user);
-    } catch (err) {
-      done(err as Error);
+    const res = await fetch('https://kauth.kakao.com/oauth/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: body.toString(),
+    });
+
+    const json = await res.json();
+    if (json.error) {
+      throw new Error(`Kakao token error: ${json.error} - ${json.error_description}`);
     }
+
+    return json.access_token;
+  }
+
+  private async getUserProfile(accessToken: string): Promise<KakaoOAuthProfile> {
+    const res = await fetch('https://kapi.kakao.com/v2/user/me', {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    const json = await res.json();
+
+    const kakaoAccount = json.kakao_account ?? {};
+    const kakaoProfile = kakaoAccount.profile ?? {};
+
+    return {
+      provider: 'kakao',
+      providerUserId: String(json.id),
+      email: kakaoAccount.email ?? null,
+      nickname: kakaoProfile.nickname ?? null,
+      avatarUrl: kakaoProfile.profile_image_url ?? null,
+    };
   }
 }

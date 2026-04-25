@@ -5,6 +5,7 @@ import {
   HttpCode,
   HttpStatus,
   Post,
+  Query,
   Req,
   Res,
   UseGuards,
@@ -16,6 +17,7 @@ import { LoginUseCase } from '../application/login.usecase';
 import { RefreshUseCase } from '../application/refresh.usecase';
 import { LogoutUseCase } from '../application/logout.usecase';
 import { OAuthLoginUseCase } from '../application/oauth-login.usecase';
+import { KakaoStrategy } from '../infrastructure/kakao.strategy';
 import { SignupDto } from '../application/dto/signup.dto';
 import { LoginDto } from '../application/dto/login.dto';
 import { RefreshDto } from '../application/dto/refresh.dto';
@@ -28,6 +30,7 @@ export class AuthController {
     private readonly refreshUseCase: RefreshUseCase,
     private readonly logoutUseCase: LogoutUseCase,
     private readonly oauthLoginUseCase: OAuthLoginUseCase,
+    private readonly kakaoStrategy: KakaoStrategy,
   ) {}
 
   @Post('signup')
@@ -69,22 +72,44 @@ export class AuthController {
     return this.handleOAuthCallback(req, res);
   }
 
-  // ---- Kakao OAuth ----
+  // ---- Kakao OAuth (Passport 미사용, 직접 구현) ----
 
   @Get('kakao')
-  @UseGuards(AuthGuard('kakao'))
-  kakao(): void {}
-
-  @Get('kakao/callback')
-  @UseGuards(AuthGuard('kakao'))
-  async kakaoCallback(
-    @Req() req: Request,
-    @Res() res: Response,
-  ): Promise<void> {
-    return this.handleOAuthCallback(req, res);
+  kakao(@Res() res: Response): void {
+    res.redirect(this.kakaoStrategy.getAuthorizationURL());
   }
 
-  // ---- OAuth 공통 ----
+  @Get('kakao/callback')
+  async kakaoCallback(
+    @Query('code') code: string,
+    @Res() res: Response,
+  ): Promise<void> {
+    try {
+      const profile = await this.kakaoStrategy.exchangeCodeForProfile(code);
+
+      const result = await this.oauthLoginUseCase.execute({
+        provider: profile.provider,
+        providerUserId: profile.providerUserId,
+        email: profile.email ?? '',
+        nickname: profile.nickname ?? profile.email?.split('@')[0] ?? 'user',
+        avatarUrl: profile.avatarUrl,
+      });
+
+      const params = new URLSearchParams({
+        accessToken: result.accessToken,
+        refreshToken: result.refreshToken,
+      });
+
+      res.redirect(`http://localhost:3000/auth/callback?${params.toString()}`);
+    } catch (err) {
+      console.error('[Kakao Callback Error]', err);
+      res.redirect(
+        `http://localhost:3000/auth?error=${encodeURIComponent(String(err))}`,
+      );
+    }
+  }
+
+  // ---- OAuth 공통 (Google용) ----
 
   private async handleOAuthCallback(
     req: Request,
