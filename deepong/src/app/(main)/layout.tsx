@@ -8,6 +8,7 @@ import { Home, MessageSquare, Users, Search, Settings } from "lucide-react";
 import Chip from "../_components/Chip";
 import { Avatar } from "../_components/Avatar";
 import { useSearch } from "@/hooks/useSearch";
+import { useResizable } from "@/hooks/useResizable";
 
 export default function MainLayout({
   children,
@@ -18,6 +19,18 @@ export default function MainLayout({
   const router = useRouter();
   const searchParams = useSearchParams();
   const selectedId = searchParams.get("chat");
+
+  // Resizable 훅 적용 (초기값 300px, 최소 200px, 최대 450px)
+  const {
+    width: chatListWidth,
+    isResizing,
+    startResizing,
+  } = useResizable({
+    initialWidth: 300,
+    minWidth: 200,
+    maxWidth: 450,
+    storageKey: "deepong-chatlist-width",
+  });
 
   const { query, setQuery, filteredItems, hasResults } = useSearch<ChatItem>({
     items: MOCK_CHATS,
@@ -55,7 +68,7 @@ export default function MainLayout({
     <div className="flex h-screen w-full overflow-hidden bg-white">
       <div className="flex h-full w-full overflow-hidden">
         {/* Sidebar */}
-        <aside className="flex w-[72px] flex-col items-center border-r border-[#e5e8eb] bg-[#f9fafb] py-5">
+        <aside className="flex w-[72px] flex-col items-center border-r border-[#e5e8eb] bg-[#f9fafb] py-5 shrink-0">
           <div className="flex flex-col gap-2">
             <nav className="flex flex-col gap-2">
               <button
@@ -92,9 +105,12 @@ export default function MainLayout({
           </div>
         </aside>
 
-        {/* 채팅 목록 */}
-        <section className="flex w-[300px] flex-col border-r border-[#e5e8eb] bg-white">
-          <div className="px-[18px] pb-3 pt-5">
+        {/* Chat List */}
+        <section
+          style={{ width: chatListWidth }}
+          className="flex flex-col border-r border-[#e5e8eb] bg-white shrink-0 relative"
+        >
+          <div className="px-[18px] pb-3 pt-5 shrink-0">
             <h2 className="mb-3 text-lg font-bold tracking-tight text-[#191f28]">
               대화
             </h2>
@@ -113,7 +129,7 @@ export default function MainLayout({
             </div>
           </div>
 
-          <div className="flex gap-1 px-[18px] pb-3">
+          <div className="flex gap-1 px-[18px] pb-3 shrink-0">
             <Chip
               variant="filter"
               label="전체"
@@ -178,6 +194,16 @@ export default function MainLayout({
                 />
               ))
             )}
+          </div>
+
+          {/* Resize Handle */}
+          <div
+            onMouseDown={startResizing}
+            className="absolute top-0 right-[-3px] bottom-0 w-[6px] cursor-col-resize z-10 group"
+          >
+            <div
+              className={`mx-auto h-full w-[2px] transition-colors group-hover:bg-[#2f6bff]/30 ${isResizing ? "bg-[#2f6bff]/50" : ""}`}
+            />
           </div>
         </section>
 
