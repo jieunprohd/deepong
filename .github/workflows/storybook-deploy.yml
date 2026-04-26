@@ -31,12 +31,10 @@ jobs:
         with:
           node-version: 20
 
-      - name: Install dependencies
-        working-directory: deepong/deepong
+      - name: Install dependencies 
         run: npm ci
 
-      - name: Build Storybook
-        working-directory: deepong/deepong
+      - name: Build Storybook 
         run: npm run build-storybook
 
       - name: Setup Pages
@@ -45,7 +43,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: "deepong/deepong/storybook-static"  # 빌드 결과 폴더 경로
+          path: "deepong/storybook-static"  # 빌드 결과 폴더 경로
 
       - name: Deploy to GitHub Pages
         id: deployment
