@@ -31,10 +31,11 @@ jobs:
         with:
           node-version: 20
 
-      # /home/runner/work/deepong/deepong/deepong (앱 루트)에 맞춰 실행
+      # 맥(M1/M2) 개발 환경에 맞춘 Tailwind 네이티브 바이너리를
+      # CI(Linux)에서도 설치 가능하게 platform/arch를 강제로 맞춤
       - name: Install dependencies
         working-directory: deepong
-        run: npm install
+        run: npm install --platform=darwin --arch=arm64
 
       - name: Build Storybook
         working-directory: deepong
