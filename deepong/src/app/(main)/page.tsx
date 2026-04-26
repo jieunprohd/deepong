@@ -28,9 +28,10 @@ export default function HomePage() {
 
   if (!hasConversations) {
     return (
-      <div className="flex flex-1 items-center justify-center p-10">
+      <div className="flex flex-1 items-center justify-center">
         <EmptyState
           variant="connect"
+          fullScreen
           action={{ label: "초대 링크 만들기", onClick: () => {} }}
           secondaryAction={{ label: "친구 찾기", onClick: () => {} }}
         />
@@ -111,6 +112,7 @@ export default function HomePage() {
           <div className="flex h-full items-center justify-center">
             <EmptyState
               variant="celebrate"
+              fullScreen
               title={`${selectedChat?.name}님과는 다 따라잡았어요!`}
             />
           </div>

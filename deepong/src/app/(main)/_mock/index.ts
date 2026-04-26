@@ -1,6 +1,16 @@
 import { ToneType } from "@/app/_components/Chip/types";
 import { AvatarColor } from "@/app/_components/Avatar";
 
+export interface ChatMessage {
+  id: string;
+  senderId: string;
+  text: string;
+  time: string;
+  tone?: ToneType;
+  isMine: boolean;
+  isRead?: boolean;
+}
+
 export interface ChatItem {
   id: string;
   name: string;
@@ -15,6 +25,8 @@ export interface ChatItem {
   };
   lastMessage?: string;
   isActive?: boolean;
+  messages?: ChatMessage[];
+  statusMessage?: string;
 }
 
 export interface FeedItem {
@@ -51,6 +63,41 @@ export const MOCK_CHATS: ChatItem[] = [
     presence: "working",
     time: "오전 9:24",
     unreadCounts: { ask: 2, chat: 4 },
+    statusMessage: "🟡 일하는 중 · 오후 6:30까지",
+    messages: [
+      {
+        id: "m1",
+        senderId: "1",
+        text: "혹시 오늘 저녁 약속 가능해? 지은이랑 같이 보려고",
+        time: "08:44",
+        tone: "ask",
+        isMine: false,
+      },
+      {
+        id: "m2",
+        senderId: "1",
+        text: "장소는 강남이나 성수 둘 중에 골라줘",
+        time: "08:44",
+        tone: "ask",
+        isMine: false,
+      },
+      {
+        id: "m3",
+        senderId: "me",
+        text: "어 오늘은 좀 늦어질 듯 ㅜ 8시 이후 가능하면 좋겠어",
+        time: "09:12",
+        tone: "chat",
+        isMine: true,
+        isRead: true,
+      },
+      {
+        id: "m4",
+        senderId: "1",
+        text: "오케 성수에서 8시 반으로 할게!",
+        time: "09:24",
+        isMine: false,
+      },
+    ],
   },
   {
     id: "2",
@@ -59,6 +106,7 @@ export const MOCK_CHATS: ChatItem[] = [
     presence: "free",
     time: "어제",
     lastMessage: "회의 끝나고 톡할게!",
+    messages: [], // 빈 방 테스트용
   },
   {
     id: "3",

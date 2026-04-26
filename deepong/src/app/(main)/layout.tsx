@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import { MOCK_CHATS, ChatItem } from "./_mock";
 import { Home, MessageSquare, Users, Search, Settings } from "lucide-react";
@@ -17,10 +17,13 @@ export default function MainLayout({
 }) {
   const { user, isLoading, isAuthenticated } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
-  const selectedId = searchParams.get("chat");
+  // URL 경로에서 /chat/123 형태의 ID 추출
+  const selectedId = pathname.startsWith("/chat/")
+    ? pathname.split("/").pop()
+    : null;
 
-  // Resizable 훅 적용 (초기값 300px, 최소 200px, 최대 450px)
   const {
     width: chatListWidth,
     isResizing,
@@ -46,11 +49,11 @@ export default function MainLayout({
   }, [isLoading, isAuthenticated, router]);
 
   const handleChatClick = (id: string) => {
-    router.push(`/?chat=${id}`);
+    router.push(`/chat/${id}`);
   };
 
-  const handleHomeClick = () => {
-    router.push("/");
+  const handleNavClick = (path: string) => {
+    router.push(path);
   };
 
   if (isLoading || !isAuthenticated) {
@@ -72,16 +75,19 @@ export default function MainLayout({
           <div className="flex flex-col gap-2">
             <nav className="flex flex-col gap-2">
               <button
-                onClick={handleHomeClick}
-                className={`relative flex h-11 w-11 items-center justify-center rounded-xl transition-all ${!selectedId ? "bg-[#eaf0ff] text-[#2f6bff]" : "text-[#8b95a1] hover:bg-[#f2f4f6]"}`}
+                onClick={() => handleNavClick("/")}
+                className={`relative flex h-11 w-11 items-center justify-center rounded-xl transition-all ${pathname === "/" ? "bg-[#eaf0ff] text-[#2f6bff]" : "text-[#8b95a1] hover:bg-[#f2f4f6]"}`}
               >
                 <Home size={22} strokeWidth={1.8} />
+              </button>
+              <button
+                onClick={() => handleNavClick("/chat")}
+                className={`relative flex h-11 w-11 items-center justify-center rounded-xl transition-all ${pathname.startsWith("/chat") ? "bg-[#eaf0ff] text-[#2f6bff]" : "text-[#8b95a1] hover:bg-[#f2f4f6]"}`}
+              >
+                <MessageSquare size={22} strokeWidth={1.8} />
                 <div className="absolute right-1.5 top-1.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[#f04452] px-1 text-[10px] font-bold text-white">
                   5
                 </div>
-              </button>
-              <button className="flex h-11 w-11 items-center justify-center rounded-xl text-[#8b95a1] transition-all hover:bg-[#f2f4f6] hover:text-[#333d4b]">
-                <MessageSquare size={22} strokeWidth={1.8} />
               </button>
               <button className="flex h-11 w-11 items-center justify-center rounded-xl text-[#8b95a1] transition-all hover:bg-[#f2f4f6] hover:text-[#333d4b]">
                 <Users size={22} strokeWidth={1.8} />
@@ -134,7 +140,7 @@ export default function MainLayout({
               variant="filter"
               label="전체"
               active={!selectedId}
-              onClick={handleHomeClick}
+              onClick={() => router.push(pathname)}
             />
             <Chip variant="filter" label="놓친 것" />
             <Chip variant="filter" label="그룹" />
@@ -163,32 +169,32 @@ export default function MainLayout({
                   onClick={() => handleChatClick(chat.id)}
                   subLabel={
                     <div className="flex items-center gap-1">
-                      {chat.unreadCounts?.ask && (
+                      {chat.unreadCounts?.ask ? (
                         <Chip
                           variant="badge"
                           tone="ask"
                           label={`🤔 ${chat.unreadCounts.ask}`}
                         />
-                      )}
-                      {chat.unreadCounts?.chat && (
+                      ) : null}
+                      {chat.unreadCounts?.chat ? (
                         <Chip
                           variant="badge"
                           label={`💬 ${chat.unreadCounts.chat}`}
                         />
-                      )}
-                      {chat.unreadCounts?.share && (
+                      ) : null}
+                      {chat.unreadCounts?.share ? (
                         <Chip
                           variant="badge"
                           label={`📎 ${chat.unreadCounts.share}`}
                         />
-                      )}
-                      {chat.unreadCounts?.urgent && (
+                      ) : null}
+                      {chat.unreadCounts?.urgent ? (
                         <Chip
                           variant="badge"
                           tone="urgent"
                           label={`⚡ ${chat.unreadCounts.urgent}`}
                         />
-                      )}
+                      ) : null}
                     </div>
                   }
                 />
@@ -196,7 +202,6 @@ export default function MainLayout({
             )}
           </div>
 
-          {/* Resize Handle */}
           <div
             onMouseDown={startResizing}
             className="absolute top-0 right-[-3px] bottom-0 w-[6px] cursor-col-resize z-10 group"
