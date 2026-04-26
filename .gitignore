@@ -5,3 +5,7 @@ dist/
 build/
 .next/
 *.log
+
+# IDE
+.idea/
+.vscode/
