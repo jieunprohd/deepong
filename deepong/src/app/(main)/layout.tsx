@@ -1,16 +1,30 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import React, { useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/auth";
-import { useEffect } from "react";
+import { MOCK_CHATS, ChatItem } from "./_mock";
+import { Home, MessageSquare, Users, Search, Settings } from "lucide-react";
+import Chip from "../_components/Chip";
+import { Avatar } from "../_components/Avatar";
+import { useSearch } from "@/hooks/useSearch";
 
 export default function MainLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { user, isLoading, isAuthenticated, logout } = useAuth();
+  const { user, isLoading, isAuthenticated } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const selectedId = searchParams.get("chat");
+
+  const { query, setQuery, filteredItems, hasResults } = useSearch<ChatItem>({
+    items: MOCK_CHATS,
+    filterFn: (chat, q) =>
+      chat.name.toLowerCase().includes(q) ||
+      (chat.lastMessage?.toLowerCase().includes(q) ?? false),
+  });
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -18,58 +32,160 @@ export default function MainLayout({
     }
   }, [isLoading, isAuthenticated, router]);
 
+  const handleChatClick = (id: string) => {
+    router.push(`/?chat=${id}`);
+  };
+
+  const handleHomeClick = () => {
+    router.push("/");
+  };
+
   if (isLoading || !isAuthenticated) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <p className="text-sm text-gray-400">로딩 중...</p>
+      <div className="flex h-screen items-center justify-center bg-gray-50">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand border-t-transparent" />
+          <p className="text-sm text-gray-400 font-medium">로딩 중...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen flex-col">
-      {/* 헤더 */}
-      <header className="flex h-14 shrink-0 items-center justify-between border-b border-gray-200 px-6">
-        <h1 className="text-lg font-bold tracking-tight">디퐁</h1>
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-gray-600">{user!.nickname}</span>
-          <button
-            onClick={logout}
-            className="rounded-md px-3 py-1.5 text-sm text-gray-500 transition-colors hover:bg-gray-100"
-          >
-            로그아웃
-          </button>
-        </div>
-      </header>
+    <div className="flex h-screen w-full overflow-hidden bg-white">
+      <div className="flex h-full w-full overflow-hidden">
+        {/* Sidebar */}
+        <aside className="flex w-[72px] flex-col items-center border-r border-[#e5e8eb] bg-[#f9fafb] py-5">
+          <div className="flex flex-col gap-2">
+            <nav className="flex flex-col gap-2">
+              <button
+                onClick={handleHomeClick}
+                className={`relative flex h-11 w-11 items-center justify-center rounded-xl transition-all ${!selectedId ? "bg-[#eaf0ff] text-[#2f6bff]" : "text-[#8b95a1] hover:bg-[#f2f4f6]"}`}
+              >
+                <Home size={22} strokeWidth={1.8} />
+                <div className="absolute right-1.5 top-1.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[#f04452] px-1 text-[10px] font-bold text-white">
+                  5
+                </div>
+              </button>
+              <button className="flex h-11 w-11 items-center justify-center rounded-xl text-[#8b95a1] transition-all hover:bg-[#f2f4f6] hover:text-[#333d4b]">
+                <MessageSquare size={22} strokeWidth={1.8} />
+              </button>
+              <button className="flex h-11 w-11 items-center justify-center rounded-xl text-[#8b95a1] transition-all hover:bg-[#f2f4f6] hover:text-[#333d4b]">
+                <Users size={22} strokeWidth={1.8} />
+              </button>
+              <button className="flex h-11 w-11 items-center justify-center rounded-xl text-[#8b95a1] transition-all hover:bg-[#f2f4f6] hover:text-[#333d4b]">
+                <Search size={22} strokeWidth={1.8} />
+              </button>
+            </nav>
+          </div>
+          <div className="mt-auto flex flex-col items-center gap-2">
+            <button className="flex h-11 w-11 items-center justify-center rounded-xl text-[#8b95a1] transition-all hover:bg-[#f2f4f6] hover:text-[#333d4b]">
+              <Settings size={22} strokeWidth={1.8} />
+            </button>
+            <Avatar
+              name={user?.nickname || "O"}
+              size="lg"
+              presence="focus"
+              className="cursor-pointer"
+              color="blue"
+            />
+          </div>
+        </aside>
 
-      {/* 메인 */}
-      <main className="flex flex-1 overflow-hidden">
-        {/* 사이드바 */}
-        <aside className="flex w-64 flex-col border-r border-gray-200 bg-gray-50">
-          <div className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand text-sm font-semibold text-white">
-                {user!.nickname[0]}
-              </div>
-              <div>
-                <p className="text-sm font-medium">{user!.nickname}</p>
-                <p className="text-xs text-gray-400">@{user!.handle}</p>
-              </div>
+        {/* 채팅 목록 */}
+        <section className="flex w-[300px] flex-col border-r border-[#e5e8eb] bg-white">
+          <div className="px-[18px] pb-3 pt-5">
+            <h2 className="mb-3 text-lg font-bold tracking-tight text-[#191f28]">
+              대화
+            </h2>
+            <div className="relative group">
+              <Search
+                className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#b0b8c1] group-focus-within:text-[#2f6bff]"
+                size={14}
+                strokeWidth={2}
+              />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                className="h-9 w-full rounded-lg bg-[#f2f4f6] pl-8.5 pr-3 text-[13px] outline-none transition-all focus:ring-2 focus:ring-[#2f6bff] focus:bg-white"
+                placeholder="이름, 메시지 검색"
+              />
             </div>
           </div>
 
-          <nav className="flex-1 px-2">
-            <p className="px-3 py-6 text-center text-xs text-gray-400">
-              대화 목록이 여기에 표시됩니다
-            </p>
-          </nav>
-        </aside>
+          <div className="flex gap-1 px-[18px] pb-3">
+            <Chip
+              variant="filter"
+              label="전체"
+              active={!selectedId}
+              onClick={handleHomeClick}
+            />
+            <Chip variant="filter" label="놓친 것" />
+            <Chip variant="filter" label="그룹" />
+          </div>
 
-        {/* 컨텐츠 영역 */}
-        <section className="flex flex-1 items-center justify-center bg-white">
-          {children}
+          <div className="flex-1 overflow-y-auto px-2">
+            {!hasResults ? (
+              <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
+                <p className="text-sm font-semibold text-[#191f28]">
+                  검색 결과가 없음
+                </p>
+                <p className="mt-1 text-xs text-[#8b95a1]">
+                  다른 검색어를 입력해보세요
+                </p>
+              </div>
+            ) : (
+              filteredItems.map((chat) => (
+                <Avatar
+                  key={chat.id}
+                  name={chat.name}
+                  color={chat.color}
+                  presence={chat.presence}
+                  time={chat.time}
+                  lastMessage={chat.lastMessage}
+                  isActive={selectedId === chat.id}
+                  onClick={() => handleChatClick(chat.id)}
+                  subLabel={
+                    <div className="flex items-center gap-1">
+                      {chat.unreadCounts?.ask && (
+                        <Chip
+                          variant="badge"
+                          tone="ask"
+                          label={`🤔 ${chat.unreadCounts.ask}`}
+                        />
+                      )}
+                      {chat.unreadCounts?.chat && (
+                        <Chip
+                          variant="badge"
+                          label={`💬 ${chat.unreadCounts.chat}`}
+                        />
+                      )}
+                      {chat.unreadCounts?.share && (
+                        <Chip
+                          variant="badge"
+                          label={`📎 ${chat.unreadCounts.share}`}
+                        />
+                      )}
+                      {chat.unreadCounts?.urgent && (
+                        <Chip
+                          variant="badge"
+                          tone="urgent"
+                          label={`⚡ ${chat.unreadCounts.urgent}`}
+                        />
+                      )}
+                    </div>
+                  }
+                />
+              ))
+            )}
+          </div>
         </section>
-      </main>
+
+        {/* Content Area */}
+        <main className="flex flex-1 flex-col bg-[#f9fafb] overflow-hidden">
+          {children}
+        </main>
+      </div>
     </div>
   );
 }
