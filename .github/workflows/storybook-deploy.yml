@@ -1,10 +1,10 @@
 name: Deploy Storybook to GitHub Pages
 
- # develop 브랜치 푸시 시 storybook 자동 배포
+# develop 브랜치 푸시 시 storybook 자동 배포
 on:
   push:
-    branches: ["develop"]        
-  workflow_dispatch:           
+    branches: ["develop"]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -31,10 +31,13 @@ jobs:
         with:
           node-version: 20
 
-      - name: Install dependencies 
-        run: npm ci
+      # /home/runner/work/deepong/deepong/deepong (앱 루트)에 맞춰 실행
+      - name: Install dependencies
+        working-directory: deepong
+        run: npm install
 
-      - name: Build Storybook 
+      - name: Build Storybook
+        working-directory: deepong
         run: npm run build-storybook
 
       - name: Setup Pages
@@ -43,7 +46,8 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: "deepong/storybook-static"  # 빌드 결과 폴더 경로
+          # 레포 루트 기준: deepong/storybook-static
+          path: "deepong/storybook-static"
 
       - name: Deploy to GitHub Pages
         id: deployment
