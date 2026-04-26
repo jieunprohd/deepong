@@ -45,6 +45,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({
   action,
   secondaryAction,
   hint,
+  fullScreen = false,
   className = "",
 }) => {
   // 프롭으로 넘어온 값이 없으면 기본값 사용
@@ -265,7 +266,11 @@ const EmptyState: React.FC<EmptyStateProps> = ({
 
   return (
     <div
-      className={`flex flex-col items-center justify-center p-10 text-center min-h-[360px] rounded-2xl border border-gray-200 ${getBgClass(variant)} ${className}`}
+      className={`flex flex-col items-center justify-center text-center ${getBgClass(variant)} ${
+        fullScreen
+          ? "w-full h-full p-8"
+          : "p-10 min-h-[360px] rounded-2xl border border-gray-200"
+      } ${className}`}
     >
       <div className="w-[120px] h-[120px] mb-5 relative">
         {getIllustration(variant)}

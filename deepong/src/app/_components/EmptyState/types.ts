@@ -37,6 +37,10 @@ export interface EmptyStateProps {
    */
   hint?: string;
   /**
+   * 부모 컨테이너를 꽉 채울지 여부 (기본값 false, true일 경우 테두리와 최소 높이 제거)
+   */
+  fullScreen?: boolean;
+  /**
    * 추가적인 스타일링을 위한 클래스
    */
   className?: string;
