@@ -1,0 +1,19 @@
+{
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0",
+    "prettier": "^3.8.3"
+  },
+  "scripts": {
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "deepong/src/**/*.{js,jsx,ts,tsx}": [
+      "npm --prefix deepong run lint",
+      "prettier --write"
+    ],
+    "deepong/src/**/*.{css,scss,json,md}": [
+      "prettier --write"
+    ]
+  }
+}

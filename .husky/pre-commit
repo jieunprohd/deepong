@@ -1,0 +1,5 @@
+echo "🎨 변경된 파일 코드 스타일 검사 및 자동 정리(lint-staged 실행)..."
+npx lint-staged
+
+echo "🔍 타입스크립트 타입 오류 검사 중(Type Check 실행)..."
+cd deepong && npx tsc --noEmit
