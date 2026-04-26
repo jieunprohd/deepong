@@ -2,134 +2,168 @@
 
 import React from "react";
 import Image from "next/image";
+import { PresenceType } from "../Chip/types";
 
-export type PresenceStatus = "free" | "working" | "focus" | "off";
+export type AvatarColor =
+  | "amber"
+  | "green"
+  | "purple"
+  | "pink"
+  | "gray"
+  | "blue";
 
 export interface AvatarProps {
-  /** 사용자의 프로필 이미지 URL */
-  profile?: string;
   /** 사용자의 이름 (필수, 이미지 없을 시 첫 글자 추출) */
   name: string;
-  /** 크기: sm(32px), md(40px), lg(48px), xl(56px) */
-  size?: "sm" | "md" | "lg" | "xl";
+  /** 사용자의 프로필 이미지 URL */
+  profile?: string;
+  /** 크기: sm(32px), md(38px), lg(40px), xl(56px), 2xl(80px) */
+  size?: "sm" | "md" | "lg" | "xl" | "2xl";
   /** 온라인 상태 */
-  presence?: PresenceStatus;
-  /** 그룹 채팅 인원수 (3 이상 시 숫자 표시) */
-  participantCount?: number;
-  /** 아바타 우측 이름 라벨 (생략 시 name 사용) */
-  label?: string;
-  /** 이름 아래 상태 메시지 또는 칩 */
-  subLabel?: React.ReactNode;
-  /** 우측 상단 시간 표시 */
+  presence?: PresenceType;
+  /** 아바타 배경 색상 */
+  color?: AvatarColor;
+  /** 마지막 메시지 (리스트 레이아웃용) */
+  lastMessage?: string;
+  /** 시간 표시 (리스트 레이아웃용) */
   time?: string;
-  /** 이름 옆 방 종류 표시 (예: 1:1, 팀채팅) */
-  roomType?: string;
   /** 추가 스타일 클래스 */
   className?: string;
+  /** 활성화(선택) 상태 여부 (리스트 레이아웃용) */
+  isActive?: boolean;
+  /** 리스트 레이아웃에서 호버 효과 여부 (기본값 true) */
+  hover?: boolean;
+  /** 클릭 이벤트 */
+  onClick?: () => void;
+  /** 그룹 채팅 인원수 */
+  participantCount?: number;
+  /** 방 타입 (예: 1:1, 그룹) */
+  roomType?: string;
+  /** 이름 아래 표시될 커스텀 영역 (뱃지, 설명 문구 등) */
+  subLabel?: React.ReactNode;
 }
 
 export const Avatar: React.FC<AvatarProps> = ({
-  profile,
   name,
+  profile,
   size = "md",
   presence,
-  participantCount,
-  label,
-  subLabel,
+  color = "gray",
+  lastMessage,
   time,
-  roomType,
   className = "",
+  isActive = false,
+  hover = true,
+  onClick,
+  participantCount,
+  roomType,
+  subLabel,
 }) => {
   const isGroup = typeof participantCount === "number" && participantCount >= 3;
-  const firstLetter = name ? name.charAt(0).toUpperCase() : "?";
+  const displayText = name ? name.charAt(0) : "?";
 
   const sizeMap = {
-    sm: "w-8 h-8 text-[12px]",
-    md: "w-10 h-10 text-[14px]",
-    lg: "w-12 h-12 text-[16px]",
-    xl: "w-14 h-14 text-[18px]",
+    sm: "w-8 h-8 text-[13px]",
+    md: "w-[38px] h-[38px] text-sm",
+    lg: "w-10 h-10 text-sm",
+    xl: "w-[56px] h-[56px] text-lg",
+    "2xl": "w-20 h-20 text-2xl",
   };
 
-  const bgMap: Record<PresenceStatus, string> = {
-    free: "bg-[var(--success-light)] text-[var(--success)]",
-    working: "bg-[var(--warning-light)] text-[var(--warning)]",
-    focus: "bg-[var(--brand-primary-light)] text-[var(--brand-primary)]",
-    off: "bg-[var(--gray-100)] text-[var(--gray-500)]",
+  const bgStyles: Record<AvatarColor, string> = {
+    amber: "bg-gradient-to-br from-[#ffb26b] to-[#f59e0b] text-white",
+    green: "bg-gradient-to-br from-[#60e0b0] to-[#00c471] text-white",
+    purple: "bg-gradient-to-br from-[#a78bfa] to-[#7f77dd] text-white",
+    pink: "bg-gradient-to-br from-[#fba5c0] to-[#d4537e] text-white",
+    gray: "bg-[#e5e8eb] text-[#4e5968]",
+    blue: "bg-gradient-to-br from-[#2f6bff] to-[#85b7eb] text-white",
   };
 
-  const defaultBg = "bg-[var(--gray-100)] text-[var(--gray-700)]";
-  const appliedBg = presence ? bgMap[presence] : defaultBg;
+  const presenceBg = {
+    working: "bg-[#ff9500]",
+    free: "bg-[#00c471]",
+    focus: "bg-[#3182f6]",
+    off: "bg-[#b0b8c1]",
+  };
 
-  const avatarContent = (
-    <div className="relative inline-block shrink-0">
+  const avatarCircle = (
+    <div className="relative shrink-0">
       <div
         className={`
           ${sizeMap[size]}
-          ${appliedBg}
-          rounded-full font-bold flex items-center justify-center overflow-hidden transition-colors
+          ${bgStyles[color]}
+          rounded-full font-bold flex items-center justify-center overflow-hidden transition-all shadow-sm
         `}
       >
         {isGroup ? (
-          <span className="text-(--gray-600)">{participantCount}</span>
+          <span>{participantCount}</span>
         ) : profile ? (
           <Image
             src={profile}
             alt={name}
             className="w-full h-full object-cover"
-            width={56}
-            height={56}
+            width={80}
+            height={80}
           />
         ) : (
-          firstLetter
+          displayText
         )}
       </div>
       {presence && (
-        <span
-          className={`
-            absolute -right-px -bottom-px rounded-full border-2 border-white
-            ${size === "sm" ? "w-2.5 h-2.5" : "w-3.5 h-3.5"}
-            bg-[var(--presence-${presence})]
-          `}
+        <div
+          className={`absolute bottom-0 right-0 rounded-full border-2 border-white 
+            ${presenceBg[presence]}
+            ${size === "sm" ? "h-2 w-2" : size === "md" || size === "lg" ? "h-2.5 w-2.5" : "h-3.5 w-3.5"}`}
         />
       )}
     </div>
   );
 
-  // 텍스트 정보(label, subLabel, time, roomType) 중 하나라도 있으면 리스트 레이아웃으로 표시
-  const hasTextInfo = !!(label || subLabel || time || roomType);
+  const isListLayout = !!(lastMessage || time || roomType || subLabel);
 
-  if (hasTextInfo) {
+  if (isListLayout) {
     return (
-      <div className={`flex items-center gap-3 w-full ${className}`}>
-        {avatarContent}
-        <div className="flex flex-col flex-1 min-w-0">
-          <div className="flex items-center justify-between gap-2">
+      <div
+        onClick={onClick}
+        className={`flex gap-2.5 rounded-lg p-2.5 transition-colors 
+          ${isActive ? "bg-[#f4f7ff]" : ""} 
+          ${hover ? "hover:bg-[#f9fafb] cursor-pointer" : ""} 
+          ${className}`}
+      >
+        {avatarCircle}
+        <div className="flex-1 min-w-0">
+          <div className="mb-0.5 flex items-baseline justify-between">
             <div className="flex items-center gap-1 min-w-0">
-              <span className="text-[15px] font-semibold text-(--gray-900) truncate">
-                {label || name}
+              <span className="truncate text-sm font-semibold text-[#191f28]">
+                {name}
               </span>
               {roomType && (
-                <span className="text-[13px] text-(--gray-400) shrink-0">
+                <span className="text-[12px] text-[#8b95a1] shrink-0">
                   · {roomType}
                 </span>
               )}
             </div>
             {time && (
-              <span className="text-[12px] text-(--gray-400) shrink-0">
+              <span className="shrink-0 text-[11px] text-[#8b95a1]">
                 {time}
               </span>
             )}
           </div>
-          {subLabel && (
-            <div className="flex items-center gap-1.5 text-[13px] text-(--gray-600) mt-0.5 truncate">
-              {subLabel}
-            </div>
-          )}
+          <div className="flex items-center gap-1.5 truncate text-xs text-[#6b7684]">
+            {subLabel}
+            {lastMessage && <span className="truncate">{lastMessage}</span>}
+          </div>
         </div>
       </div>
     );
   }
 
-  // 텍스트 정보가 없으면 아바타 원형만 반환
-  return <div className={`inline-block ${className}`}>{avatarContent}</div>;
+  return (
+    <div
+      onClick={onClick}
+      className={`inline-block ${hover ? "cursor-pointer" : ""} ${className}`}
+    >
+      {avatarCircle}
+    </div>
+  );
 };
