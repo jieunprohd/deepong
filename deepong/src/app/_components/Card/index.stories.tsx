@@ -48,7 +48,7 @@ export const RelationshipNorms: Story = {
       <Card title="관계 규칙" variant="outline" padding="none">
         <Card.Item>
           <div className="flex items-center justify-between">
-            <Avatar name="민수" presence="working" label="민수" />
+            <Avatar name="민수" presence="working" />
             <span className="text-[13px] text-(--brand-primary) font-semibold">
               편집
             </span>

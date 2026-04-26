@@ -17,7 +17,7 @@ interface CardItemProps {
   showDivider?: boolean;
 }
 
-// ✅ 이름 있는 컴포넌트 + 정적 프로퍼티로 Item 붙이기
+//  이름 있는 컴포넌트 + 정적 프로퍼티로 Item 붙이기
 const CardRoot: React.FC<CardProps> & { Item: React.FC<CardItemProps> } = ({
   children,
   variant = "elevated",
@@ -49,7 +49,7 @@ const CardRoot: React.FC<CardProps> & { Item: React.FC<CardItemProps> } = ({
       )}
       <div
         className={`
-          rounded-(--r-xl) overflow-hidden
+          rounded-(--r-md) overflow-hidden
           ${variantStyles[variant]}
           ${paddingStyles[padding]}
           ${className}
@@ -61,7 +61,7 @@ const CardRoot: React.FC<CardProps> & { Item: React.FC<CardItemProps> } = ({
   );
 };
 
-// ✅ Card.Item도 이름 있는 컴포넌트로 분리
+//  Card.Item도 이름 있는 컴포넌트로 분리
 const CardItem: React.FC<CardItemProps> = ({
   children,
   onClick,
