@@ -1,6 +1,5 @@
 name: Deploy Storybook to GitHub Pages
 
-# develop 브랜치 푸시 시 storybook 자동 배포
 on:
   push:
     branches: ["develop"]
@@ -31,11 +30,12 @@ jobs:
         with:
           node-version: 20
 
-      # 맥(M1/M2) 개발 환경에 맞춘 Tailwind 네이티브 바이너리를
-      # CI(Linux)에서도 설치 가능하게 platform/arch를 강제로 맞춤
       - name: Install dependencies
         working-directory: deepong
-        run: npm install --platform=darwin --arch=arm64
+        env:
+          npm_config_ignore_platform: true
+          npm_config_optional: false
+        run: npm install
 
       - name: Build Storybook
         working-directory: deepong
@@ -47,7 +47,6 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # 레포 루트 기준: deepong/storybook-static
           path: "deepong/storybook-static"
 
       - name: Deploy to GitHub Pages
