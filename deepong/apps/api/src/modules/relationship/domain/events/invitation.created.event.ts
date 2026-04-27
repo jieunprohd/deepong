@@ -1,7 +1,7 @@
 import {DomainEvent} from '@shared/types/domain-event.interface';
 
-export class UserFriendshipRequestEvent implements DomainEvent {
-    readonly eventName = 'UserFriendshipRequestEvent';
+export class InvitationCreatedEvent implements DomainEvent {
+    readonly eventName = 'InvitationCreatedEvent';
     readonly occurredAt: Date;
 
     constructor(readonly aggregateId: number) {
