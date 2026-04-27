@@ -159,6 +159,46 @@ export const MOCK_FEED: FeedItem[] = [
   },
 ];
 
+export interface FriendItem {
+  id: string;
+  name: string;
+  handle: string;
+  color: AvatarColor;
+  presence: "free" | "working" | "focus" | "off";
+  avatarUrl?: string;
+}
+
+export const MOCK_FRIENDS: FriendItem[] = [
+  {
+    id: "f1",
+    name: "민수",
+    handle: "minsu",
+    color: "amber",
+    presence: "working",
+  },
+  {
+    id: "f2",
+    name: "지은",
+    handle: "jieun",
+    color: "green",
+    presence: "free",
+  },
+  {
+    id: "f3",
+    name: "준호",
+    handle: "junho",
+    color: "purple",
+    presence: "off",
+  },
+  {
+    id: "f4",
+    name: "서연",
+    handle: "seoyeon",
+    color: "pink",
+    presence: "focus",
+  },
+];
+
 export const MOCK_LINKS: LinkItem[] = [
   {
     id: "l1",
