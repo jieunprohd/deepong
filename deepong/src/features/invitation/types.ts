@@ -5,6 +5,7 @@ export interface CreateInvitationRequest {
 
 export interface CreateInvitationResponse {
   token: string;
+  inviteUrl: string;
   expiresAt: string;
 }
 
@@ -15,7 +16,24 @@ export interface InvitationPreviewResponse {
     avatarUrl: string | null;
   };
   expiresAt: string;
-  singleUse: boolean;
+}
+
+export interface FriendItem {
+  id: number;
+  peer: {
+    id: number;
+    nickname: string;
+    handle: string;
+    avatarUrl: string | null;
+  };
+  status: string;
+  acceptedAt: string;
+}
+
+export interface FriendListResponse {
+  items: FriendItem[];
+  hasNext: boolean;
+  nextCursor: string | null;
 }
 
 export type InvitationError =

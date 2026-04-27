@@ -1,19 +1,54 @@
 "use client";
 
-import React, { useState } from "react";
-import { MOCK_FRIENDS } from "../_mock";
+import React, { useState, useEffect, useCallback } from "react";
 import { Avatar } from "@/app/_components/Avatar";
 import { Button } from "@/app/_components/Button";
 import EmptyState from "@/app/_components/EmptyState";
 import { CreateInvitationModal } from "@/features/invitation/CreateInvitationModal";
+import { fetchFriends } from "@/features/invitation/api";
+import type { FriendItem } from "@/features/invitation/types";
 import { UserPlus } from "lucide-react";
 
 export default function FriendsPage() {
   const [isInviteOpen, setIsInviteOpen] = useState(false);
+  const [friends, setFriends] = useState<FriendItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasNext, setHasNext] = useState(false);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
 
-  const hasFriends = MOCK_FRIENDS.length > 0;
+  const loadFriends = useCallback(async (cursor?: string) => {
+    try {
+      const res = await fetchFriends(cursor);
+      if (cursor) {
+        setFriends((prev) => [...prev, ...res.items]);
+      } else {
+        setFriends(res.items);
+      }
+      setHasNext(res.hasNext);
+      setNextCursor(res.nextCursor);
+    } catch {
+      // 에러 시 빈 목록 유지
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
-  if (!hasFriends) {
+  useEffect(() => {
+    loadFriends();
+  }, [loadFriends]);
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-1 items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#2f6bff] border-t-transparent" />
+          <p className="text-sm text-[#8b95a1] font-medium">로딩 중...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (friends.length === 0) {
     return (
       <div className="flex flex-1 items-center justify-center">
         <EmptyState
@@ -42,7 +77,7 @@ export default function FriendsPage() {
               친구
             </h1>
             <p className="mt-0.5 text-[13px] text-[#6b7684]">
-              {MOCK_FRIENDS.length}명의 친구
+              {friends.length}명의 친구
             </p>
           </div>
           <Button
@@ -59,22 +94,35 @@ export default function FriendsPage() {
       {/* Friends List */}
       <div className="flex-1 overflow-y-auto px-6 py-4">
         <div className="flex flex-col gap-1">
-          {MOCK_FRIENDS.map((friend) => (
+          {friends.map((friend) => (
             <Avatar
               key={friend.id}
-              name={friend.name}
-              color={friend.color}
-              presence={friend.presence}
-              profile={friend.avatarUrl}
+              name={friend.peer.nickname}
+              color="blue"
+              profile={friend.peer.avatarUrl ?? undefined}
               subLabel={
                 <span className="text-[12px] text-[#8b95a1]">
-                  @{friend.handle}
+                  @{friend.peer.handle}
                 </span>
               }
               lastMessage=" "
             />
           ))}
         </div>
+
+        {hasNext && (
+          <div className="flex justify-center pt-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                if (nextCursor) loadFriends(nextCursor);
+              }}
+            >
+              더 보기
+            </Button>
+          </div>
+        )}
       </div>
 
       <CreateInvitationModal

@@ -35,8 +35,7 @@ export const CreateInvitationModal: React.FC<CreateInvitationModalProps> = ({
 
     try {
       const res = await createInvitation({ singleUse, ttlSeconds });
-      const url = `${window.location.origin}/invite/${res.token}`;
-      setInviteUrl(url);
+      setInviteUrl(res.inviteUrl);
       setStep("result");
     } catch {
       setError("링크 생성에 실패했습니다. 다시 시도해주세요.");
