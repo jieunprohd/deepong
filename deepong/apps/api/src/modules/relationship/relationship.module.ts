@@ -7,19 +7,22 @@ import { TokenService } from './application/token.service';
 import { InvitationRequestUseCase } from './application/invitation.request.usecase';
 import { InvitationPreviewUseCase } from './application/invitation.preview.usecase';
 import { AcceptInvitationUseCase } from './application/accept.invitation.usecase';
+import { FindFriendshipUsecase } from './application/find.friendship.usecase';
 import { InvitationController } from './interface/invitation.controller';
+import { FriendshipController } from './interface/friendship.controller';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([InviteToken, Friendship]),
     IdentityModule,
   ],
-  controllers: [InvitationController],
+  controllers: [InvitationController, FriendshipController],
   providers: [
     TokenService,
     InvitationRequestUseCase,
     InvitationPreviewUseCase,
     AcceptInvitationUseCase,
+    FindFriendshipUsecase,
   ],
 })
 export class RelationshipModule {}

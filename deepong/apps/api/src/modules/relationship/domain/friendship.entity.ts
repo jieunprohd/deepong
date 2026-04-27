@@ -1,8 +1,17 @@
-import {Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn,} from 'typeorm';
+import {
+    Column,
+    CreateDateColumn,
+    Entity,
+    JoinColumn,
+    ManyToOne,
+    PrimaryGeneratedColumn,
+    UpdateDateColumn,
+} from 'typeorm';
 import {AggregateRoot} from '@shared/types/aggregate-root.base';
 import {FriendshipStatus} from "@modules/relationship/domain/friendship.status.type";
 import {FriendshipInviteSource} from "@modules/relationship/domain/friendship.invite.source.type";
 import {FriendshipAcceptedEvent} from "@modules/relationship/domain/events/friendship.accepted.event";
+import {User} from "@modules/identity/domain/user.entity";
 
 @Entity('FRIENDSHIP')
 export class Friendship extends AggregateRoot {
@@ -12,8 +21,16 @@ export class Friendship extends AggregateRoot {
     @Column({type: 'bigint'})
     requestUserId!: number;
 
+    @ManyToOne(() => User)
+    @JoinColumn({name: 'REQUESTER_USER_ID'})
+    requesterUserId?: User;
+
     @Column({type: 'bigint'})
     addressedUserId!: number;
+
+    @ManyToOne(() => User)
+    @JoinColumn({name: 'ADDRESSEE_USER_ID'})
+    addresseeUserId?: User;
 
     @Column({type: 'enum', enum: FriendshipStatus})
     status!: FriendshipStatus;
@@ -44,6 +61,26 @@ export class Friendship extends AggregateRoot {
             .getOne();
     }
 
+    public static findFriendList(
+        userId: number,
+        cursor?: Date,
+        limit: number = 20,
+    ): Promise<[Friendship[], number]> {
+        const qb = this.createQueryBuilder<Friendship>('f')
+            .leftJoinAndSelect('f.requestUser', 'requestUser')
+            .leftJoinAndSelect('f.addressedUser', 'addressedUser')
+            .where('(f.requestUserId = :userId OR f.addressedUserId = :userId)', {userId})
+            .andWhere('f.status = :status', {status: FriendshipStatus.ACCEPTED})
+            .orderBy('f.acceptedAt', 'ASC')
+            .limit(limit);
+
+        if (cursor) {
+            qb.andWhere('f.acceptedAt > :cursor', {cursor});
+        }
+
+        return qb.getManyAndCount();
+    }
+
     // ---- Factory Methods ----
     public static request(props: {
         requestUserId: number;
@@ -62,6 +99,18 @@ export class Friendship extends AggregateRoot {
         friendship.acceptedAt = null;
         friendship.blockedAt = null;
         return friendship;
+    }
+
+    public getPeerUserId(myUserId: number): number {
+        return this.requestUserId === myUserId
+            ? this.addressedUserId
+            : this.requestUserId;
+    }
+
+    public getPeerUser(myUserId: number): User | undefined {
+        return this.requestUserId === myUserId
+            ? this.addresseeUserId
+            : this.requesterUserId;
     }
 
     // ---- Domain Methods ----
