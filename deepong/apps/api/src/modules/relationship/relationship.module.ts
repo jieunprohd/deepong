@@ -8,6 +8,7 @@ import { InvitationRequestUseCase } from './application/invitation.request.useca
 import { InvitationPreviewUseCase } from './application/invitation.preview.usecase';
 import { AcceptInvitationUseCase } from './application/accept.invitation.usecase';
 import { FindFriendshipUsecase } from './application/find.friendship.usecase';
+import { DeleteFriendshipUseCase } from './application/delete.friendship.usecase';
 import { InvitationController } from './interface/invitation.controller';
 import { FriendshipController } from './interface/friendship.controller';
 
@@ -23,6 +24,7 @@ import { FriendshipController } from './interface/friendship.controller';
     InvitationPreviewUseCase,
     AcceptInvitationUseCase,
     FindFriendshipUsecase,
+    DeleteFriendshipUseCase,
   ],
 })
 export class RelationshipModule {}

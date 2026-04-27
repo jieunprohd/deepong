@@ -12,6 +12,8 @@ import {FriendshipStatus} from "@modules/relationship/domain/friendship.status.t
 import {FriendshipInviteSource} from "@modules/relationship/domain/friendship.invite.source.type";
 import {FriendshipAcceptedEvent} from "@modules/relationship/domain/events/friendship.accepted.event";
 import {User} from "@modules/identity/domain/user.entity";
+import {ForbiddenException} from "@nestjs/common";
+import {FriendshipRemovedEvent} from "@modules/relationship/domain/events/friendship.removed.event";
 
 @Entity('FRIENDSHIP')
 export class Friendship extends AggregateRoot {
@@ -135,6 +137,7 @@ export class Friendship extends AggregateRoot {
             return;
         }
         this.status = FriendshipStatus.REMOVED;
+        this.updatedAt = new Date();
     }
 
     public recordAccepted(): void {
@@ -165,5 +168,22 @@ export class Friendship extends AggregateRoot {
 
     public involves(userId: number): boolean {
         return this.requesterUserId === userId || this.addresseeUserId === userId;
+    }
+
+    public markRemove(userId: number) {
+        if (this.requesterUserId !== userId && this.addresseeUserId !== userId) {
+            throw new ForbiddenException('당사자가 아닌 관계는 제거할 수 없습니다.');
+        }
+
+        this.markRemoved();
+
+        this.addDomainEvent(
+            new FriendshipRemovedEvent(
+                this.id,
+                this.requesterUserId,
+                this.addresseeUserId,
+                this.updatedAt,
+            ),
+        );
     }
 }
