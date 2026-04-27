@@ -15,9 +15,11 @@ export default function FriendsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [hasNext, setHasNext] = useState(false);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [error, setError] = useState(false);
 
   const loadFriends = useCallback(async (cursor?: string) => {
     try {
+      setError(false);
       const res = await fetchFriends(cursor);
       if (cursor) {
         setFriends((prev) => [...prev, ...res.items]);
@@ -27,7 +29,7 @@ export default function FriendsPage() {
       setHasNext(res.hasNext);
       setNextCursor(res.nextCursor);
     } catch {
-      // 에러 시 빈 목록 유지
+      setError(true);
     } finally {
       setIsLoading(false);
     }
@@ -43,6 +45,21 @@ export default function FriendsPage() {
         <div className="flex flex-col items-center gap-3">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#2f6bff] border-t-transparent" />
           <p className="text-sm text-[#8b95a1] font-medium">로딩 중...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-1 items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <p className="text-sm text-[#8b95a1] font-medium">
+            친구 목록을 불러오지 못했습니다.
+          </p>
+          <Button variant="ghost" size="sm" onClick={() => loadFriends()}>
+            다시 시도
+          </Button>
         </div>
       </div>
     );

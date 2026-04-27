@@ -59,7 +59,7 @@ export async function previewInvitation(
   const data = await res.json();
   return {
     inviter: {
-      nickname: data.invitation.issuer.nickName,
+      nickname: data.invitation.issuer.nickname,
       handle: data.invitation.issuer.handle,
       avatarUrl: data.invitation.issuer.avatarUrl,
     },
