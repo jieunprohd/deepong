@@ -36,6 +36,15 @@ export interface FriendListResponse {
   nextCursor: string | null;
 }
 
+export interface SearchUserResponse {
+  user: {
+    id: number;
+    nickname: string;
+    handle: string;
+    avatarUrl: string | null;
+  };
+}
+
 export type InvitationError =
   | "expired"
   | "not-found"

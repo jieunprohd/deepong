@@ -4,6 +4,7 @@ import type {
   InvitationPreviewResponse,
   InvitationError,
   FriendListResponse,
+  SearchUserResponse,
 } from "./types";
 
 const API_BASE = "http://localhost:4000/api/v1";
@@ -117,5 +118,47 @@ export class InvitationApiError extends Error {
   ) {
     super(`Invitation error: ${code}`);
     this.name = "InvitationApiError";
+  }
+}
+
+export async function searchUserByHandle(
+  handle: string,
+): Promise<SearchUserResponse> {
+  const url = new URL(`${API_BASE}/users/search`);
+  url.searchParams.set("handle", handle);
+
+  const res = await fetch(url.toString(), {
+    headers: authHeaders(),
+  });
+
+  if (res.status === 404) {
+    throw new SearchUserError("not-found", 404);
+  }
+
+  if (!res.ok) {
+    throw new SearchUserError("unknown", res.status);
+  }
+
+  return res.json();
+}
+
+export async function deleteFriendship(friendshipId: number): Promise<void> {
+  const res = await fetch(`${API_BASE}/friendship/${friendshipId}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+
+  if (!res.ok) {
+    throw new Error("친구 삭제에 실패했습니다.");
+  }
+}
+
+export class SearchUserError extends Error {
+  constructor(
+    public readonly code: "not-found" | "unknown",
+    public readonly status: number,
+  ) {
+    super(`Search user error: ${code}`);
+    this.name = "SearchUserError";
   }
 }
