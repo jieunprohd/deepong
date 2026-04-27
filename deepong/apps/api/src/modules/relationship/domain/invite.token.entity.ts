@@ -71,6 +71,23 @@ export class InviteToken extends AggregateRoot {
         );
     }
 
+    public isUsable(now: Date = new Date()): boolean {
+        if (now >= this.expiresAt) {
+            return false;
+        }
+        if (this.usedCount >= this.maxUseCount) {
+            return false;
+        }
+        return true;
+    }
+
+    public consume(): void {
+        if (!this.isUsable()) {
+            throw new Error('만료되었거나 이미 사용된 초대 토큰입니다.');
+        }
+        this.usedCount += 1;
+    }
+
     private static calculateExpiresAt(ttlHours: number): Date {
         const now = new Date();
         return new Date(now.getTime() + ttlHours * 60 * 60 * 1000);
