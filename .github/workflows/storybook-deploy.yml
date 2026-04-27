@@ -29,17 +29,23 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: 'pnpm'
+          cache-dependency-path: deepong/pnpm-lock.yaml
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8
+            
       - name: Install dependencies
         working-directory: deepong
         env:
-          npm_config_ignore_platform: true
           npm_config_optional: false
-        run: npm install
+        run: pnpm install
 
       - name: Build Storybook
         working-directory: deepong
-        run: npm run build-storybook
+        run: pnpm run build-storybook
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
