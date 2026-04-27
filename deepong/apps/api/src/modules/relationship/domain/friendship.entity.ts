@@ -4,7 +4,7 @@ import {FriendshipStatus} from "@modules/relationship/domain/friendship.status.t
 import {FriendshipInviteSource} from "@modules/relationship/domain/friendship.invite.source.type";
 
 @Entity('FRIENDSHIP')
-export class User extends AggregateRoot {
+export class FriendshipEntity extends AggregateRoot {
     @PrimaryGeneratedColumn({type: 'bigint', unsigned: true})
     id!: number;
 
@@ -35,5 +35,5 @@ export class User extends AggregateRoot {
     // ---- Query Methods ----
 
     // ---- Factory Methods ----
-    
+
 }
