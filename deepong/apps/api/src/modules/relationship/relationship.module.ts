@@ -4,6 +4,7 @@ import { IdentityModule } from '@modules/identity/identity.module';
 import { InviteToken } from './domain/invite.token.entity';
 import { TokenService } from './application/token.service';
 import { InvitationRequestUseCase } from './application/invitation.request.usecase';
+import { InvitationPreviewUseCase } from './application/invitation.preview.usecase';
 import { InvitationController } from './interface/invitation.controller';
 
 @Module({
@@ -12,6 +13,6 @@ import { InvitationController } from './interface/invitation.controller';
     IdentityModule,
   ],
   controllers: [InvitationController],
-  providers: [TokenService, InvitationRequestUseCase],
+  providers: [TokenService, InvitationRequestUseCase, InvitationPreviewUseCase],
 })
 export class RelationshipModule {}
