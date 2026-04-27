@@ -9,15 +9,17 @@ import { InvitationPreviewUseCase } from './application/invitation.preview.useca
 import { AcceptInvitationUseCase } from './application/accept.invitation.usecase';
 import { FindFriendshipUsecase } from './application/find.friendship.usecase';
 import { DeleteFriendshipUseCase } from './application/delete.friendship.usecase';
+import { SearchUserUseCase } from './application/search.user.usecase';
 import { InvitationController } from './interface/invitation.controller';
 import { FriendshipController } from './interface/friendship.controller';
+import { UserController } from './interface/user.controller';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([InviteToken, Friendship]),
     IdentityModule,
   ],
-  controllers: [InvitationController, FriendshipController],
+  controllers: [InvitationController, FriendshipController, UserController],
   providers: [
     TokenService,
     InvitationRequestUseCase,
@@ -25,6 +27,7 @@ import { FriendshipController } from './interface/friendship.controller';
     AcceptInvitationUseCase,
     FindFriendshipUsecase,
     DeleteFriendshipUseCase,
+    SearchUserUseCase,
   ],
 })
 export class RelationshipModule {}
