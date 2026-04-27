@@ -6,7 +6,6 @@ import {InvitationResponseDto} from "@modules/relationship/application/dto/invit
 import {User} from "@modules/identity/domain/user.entity";
 import {TokenService} from "@modules/relationship/application/token.service";
 import {InviteToken} from "@modules/relationship/domain/invite.token.entity";
-import {InvitationCreatedEvent} from "@modules/relationship/domain/events/invitation.created.event";
 
 const DEFAULT_MAX_USE_COUNT = 10;
 
@@ -27,20 +26,15 @@ export class InvitationRequestUseCase {
             token,
             issuerUserId: user.id,
             singleUse: dto.singleUse,
-            maxUseCount: DEFAULT_MAX_USE_COUNT,
+            maxUseCount: dto.singleUse ? 1 : DEFAULT_MAX_USE_COUNT,
             ttlHours: dto.ttlHours,
         });
         await inviteToken.save();
 
-        const event = new InvitationCreatedEvent(
-            inviteToken.id,
-            inviteToken.id,
-            inviteToken.issuerUserId,
-            inviteToken.token,
-            inviteToken.expiresAt,
-            inviteToken.createdAt,
-        );
-        this.eventEmitter.emit(event.eventName, event);
+        inviteToken.recordCreated();
+        for (const event of inviteToken.pullDomainEvents()) {
+            this.eventEmitter.emit(event.eventName, event);
+        }
 
         return InvitationResponseDto.from(inviteToken, this.buildInviteUrl(inviteToken.token));
     }
