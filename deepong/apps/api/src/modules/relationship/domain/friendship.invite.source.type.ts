@@ -1,3 +1,3 @@
 export enum FriendshipInviteSource {
-    LINK = 'LINK', EMAIL = 'EMAIL', MANUAL = 'MANUAL',
+    LINK = 'LINK', EMAIL = 'EMAIL', QR = 'QR', MANUAL = 'MANUAL',
 }

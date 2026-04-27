@@ -1,19 +1,38 @@
-import {Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn,} from 'typeorm';
+import {
+    Column,
+    CreateDateColumn,
+    Entity,
+    JoinColumn,
+    ManyToOne,
+    PrimaryGeneratedColumn,
+    UpdateDateColumn,
+} from 'typeorm';
 import {AggregateRoot} from '@shared/types/aggregate-root.base';
 import {FriendshipStatus} from "@modules/relationship/domain/friendship.status.type";
 import {FriendshipInviteSource} from "@modules/relationship/domain/friendship.invite.source.type";
 import {FriendshipAcceptedEvent} from "@modules/relationship/domain/events/friendship.accepted.event";
+import {User} from "@modules/identity/domain/user.entity";
+import {ForbiddenException} from "@nestjs/common";
+import {FriendshipRemovedEvent} from "@modules/relationship/domain/events/friendship.removed.event";
 
 @Entity('FRIENDSHIP')
 export class Friendship extends AggregateRoot {
     @PrimaryGeneratedColumn({type: 'bigint', unsigned: true})
     id!: number;
 
-    @Column({type: 'bigint'})
-    requestUserId!: number;
+    @Column({type: 'bigint', unsigned: true})
+    requesterUserId!: number;
 
-    @Column({type: 'bigint'})
-    addressedUserId!: number;
+    @ManyToOne(() => User, {createForeignKeyConstraints: false})
+    @JoinColumn({name: 'REQUESTER_USER_ID'})
+    requesterUser?: User;
+
+    @Column({type: 'bigint', unsigned: true})
+    addresseeUserId!: number;
+
+    @ManyToOne(() => User, {createForeignKeyConstraints: false})
+    @JoinColumn({name: 'ADDRESSEE_USER_ID'})
+    addresseeUser?: User;
 
     @Column({type: 'enum', enum: FriendshipStatus})
     status!: FriendshipStatus;
@@ -37,11 +56,31 @@ export class Friendship extends AggregateRoot {
     public static findBetween(userIdA: number, userIdB: number): Promise<Friendship | null> {
         return this.createQueryBuilder<Friendship>('friendship')
             .where(
-                '(friendship.requestUserId = :a AND friendship.addressedUserId = :b) OR ' +
-                '(friendship.requestUserId = :b AND friendship.addressedUserId = :a)',
+                '(friendship.requesterUserId = :a AND friendship.addresseeUserId = :b) OR ' +
+                '(friendship.requesterUserId = :b AND friendship.addresseeUserId = :a)',
                 {a: userIdA, b: userIdB},
             )
             .getOne();
+    }
+
+    public static findFriendList(
+        userId: number,
+        cursor?: Date,
+        limit: number = 20,
+    ): Promise<[Friendship[], number]> {
+        const qb = this.createQueryBuilder<Friendship>('f')
+            .leftJoinAndSelect('f.requesterUser', 'requestUser')
+            .leftJoinAndSelect('f.addresseeUser', 'addressedUser')
+            .where('(f.requesterUserId = :userId OR f.addresseeUserId = :userId)', {userId})
+            .andWhere('f.status = :status', {status: FriendshipStatus.ACCEPTED})
+            .orderBy('f.acceptedAt', 'ASC')
+            .limit(limit);
+
+        if (cursor) {
+            qb.andWhere('f.acceptedAt > :cursor', {cursor});
+        }
+
+        return qb.getManyAndCount();
     }
 
     // ---- Factory Methods ----
@@ -55,13 +94,25 @@ export class Friendship extends AggregateRoot {
         }
 
         const friendship = new Friendship();
-        friendship.requestUserId = props.requestUserId;
-        friendship.addressedUserId = props.addressedUserId;
+        friendship.requesterUserId = props.requestUserId;
+        friendship.addresseeUserId = props.addressedUserId;
         friendship.status = FriendshipStatus.PENDING;
         friendship.inviteSource = props.inviteSource;
         friendship.acceptedAt = null;
         friendship.blockedAt = null;
         return friendship;
+    }
+
+    public getPeerUserId(myUserId: number): number {
+        return this.requesterUserId === myUserId
+            ? this.addresseeUserId
+            : this.requesterUserId;
+    }
+
+    public getPeerUser(myUserId: number): User | undefined {
+        return this.requesterUserId === myUserId
+            ? this.addresseeUser
+            : this.requesterUser;
     }
 
     // ---- Domain Methods ----
@@ -86,6 +137,7 @@ export class Friendship extends AggregateRoot {
             return;
         }
         this.status = FriendshipStatus.REMOVED;
+        this.updatedAt = new Date();
     }
 
     public recordAccepted(): void {
@@ -95,8 +147,8 @@ export class Friendship extends AggregateRoot {
         this.addDomainEvent(
             new FriendshipAcceptedEvent(
                 this.id,
-                this.requestUserId,
-                this.addressedUserId,
+                this.requesterUserId,
+                this.addresseeUserId,
                 this.acceptedAt,
             ),
         );
@@ -115,6 +167,23 @@ export class Friendship extends AggregateRoot {
     }
 
     public involves(userId: number): boolean {
-        return this.requestUserId === userId || this.addressedUserId === userId;
+        return this.requesterUserId === userId || this.addresseeUserId === userId;
+    }
+
+    public markRemove(userId: number) {
+        if (this.requesterUserId !== userId && this.addresseeUserId !== userId) {
+            throw new ForbiddenException('당사자가 아닌 관계는 제거할 수 없습니다.');
+        }
+
+        this.markRemoved();
+
+        this.addDomainEvent(
+            new FriendshipRemovedEvent(
+                this.id,
+                this.requesterUserId,
+                this.addresseeUserId,
+                this.updatedAt,
+            ),
+        );
     }
 }

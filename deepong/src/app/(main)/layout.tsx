@@ -89,7 +89,10 @@ export default function MainLayout({
                   5
                 </div>
               </button>
-              <button className="flex h-11 w-11 items-center justify-center rounded-xl text-[#8b95a1] transition-all hover:bg-[#f2f4f6] hover:text-[#333d4b]">
+              <button
+                onClick={() => handleNavClick("/friends")}
+                className={`relative flex h-11 w-11 items-center justify-center rounded-xl transition-all ${pathname.startsWith("/friends") ? "bg-[#eaf0ff] text-[#2f6bff]" : "text-[#8b95a1] hover:bg-[#f2f4f6]"}`}
+              >
                 <Users size={22} strokeWidth={1.8} />
               </button>
               <button className="flex h-11 w-11 items-center justify-center rounded-xl text-[#8b95a1] transition-all hover:bg-[#f2f4f6] hover:text-[#333d4b]">

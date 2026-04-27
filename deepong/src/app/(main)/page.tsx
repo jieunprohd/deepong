@@ -1,18 +1,21 @@
 "use client";
 
-import React from "react";
-import { useSearchParams } from "next/navigation";
+import React, { useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import { MOCK_CHATS, MOCK_FEED, MOCK_LINKS } from "./_mock";
 import Chip from "../_components/Chip";
 import EmptyState from "../_components/EmptyState";
 import { Avatar } from "../_components/Avatar";
 import { Card } from "../_components/Card";
+import { CreateInvitationModal } from "@/features/invitation/CreateInvitationModal";
 
 export default function HomePage() {
   const { user } = useAuth();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const chatId = searchParams.get("chat");
+  const [isInviteOpen, setIsInviteOpen] = useState(false);
 
   const selectedChat = MOCK_CHATS.find((c) => c.id === chatId);
 
@@ -32,8 +35,12 @@ export default function HomePage() {
         <EmptyState
           variant="connect"
           fullScreen
-          action={{ label: "초대 링크 만들기", onClick: () => {} }}
-          secondaryAction={{ label: "친구 찾기", onClick: () => {} }}
+          action={{ label: "초대 링크 만들기", onClick: () => setIsInviteOpen(true) }}
+          secondaryAction={{ label: "친구 찾기", onClick: () => router.push("/friends") }}
+        />
+        <CreateInvitationModal
+          isOpen={isInviteOpen}
+          onClose={() => setIsInviteOpen(false)}
         />
       </div>
     );

@@ -1,5 +1,6 @@
 import {BadRequestException, ForbiddenException, GoneException, Injectable, NotFoundException} from "@nestjs/common";
 import {EventEmitter2} from "@nestjs/event-emitter";
+import {DataSource} from "typeorm";
 import {InviteToken} from "@modules/relationship/domain/invite.token.entity";
 import {Friendship} from "@modules/relationship/domain/friendship.entity";
 import {FriendshipInviteSource} from "@modules/relationship/domain/friendship.invite.source.type";
@@ -8,6 +9,7 @@ import {FriendshipInviteSource} from "@modules/relationship/domain/friendship.in
 export class AcceptInvitationUseCase {
     constructor(
         private readonly eventEmitter: EventEmitter2,
+        private readonly dataSource: DataSource,
     ) {
     }
 
@@ -24,14 +26,17 @@ export class AcceptInvitationUseCase {
 
         if (friendship.isPending()) {
             friendship.accept();
-            await friendship.save();
+            invitation.consume();
+
+            await this.dataSource.transaction(async (manager) => {
+                await manager.save(friendship);
+                await manager.save(invitation);
+            });
+
             friendship.recordAccepted();
             for (const event of friendship.pullDomainEvents()) {
                 this.eventEmitter.emit(event.eventName, event);
             }
-
-            invitation.consume();
-            await invitation.save();
             return;
         }
 

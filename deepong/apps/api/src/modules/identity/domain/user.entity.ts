@@ -53,6 +53,14 @@ export class User extends AggregateRoot {
         return !!(await User.findOne({where: {handle}}));
     }
 
+    public static async searchUserByHandle(handle: string) {
+        return await User.findOne({
+            where: {
+                handle
+            }
+        });
+    }
+
     // ---- Factory Methods ----
 
     public static signup(props: {
