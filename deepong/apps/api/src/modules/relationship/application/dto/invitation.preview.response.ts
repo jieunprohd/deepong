@@ -5,7 +5,7 @@ export class InvitationPreviewResponse {
     invitation: {
         token: string;
         issuer: {
-            nickName: string;
+            nickname: string;
             handle: string;
             avatarUrl: string;
         }
@@ -17,7 +17,7 @@ export class InvitationPreviewResponse {
         response.invitation = {
             token: inviteToken.token,
             issuer: {
-                nickName: issuer.nickname,
+                nickname: issuer.nickname,
                 handle: issuer.handle,
                 avatarUrl: issuer.avatarUrl,
             }
