@@ -18,19 +18,19 @@ export class Friendship extends AggregateRoot {
     @PrimaryGeneratedColumn({type: 'bigint', unsigned: true})
     id!: number;
 
-    @Column({type: 'bigint'})
-    requestUserId!: number;
+    @Column({type: 'bigint', unsigned: true})
+    requesterUserId!: number;
 
-    @ManyToOne(() => User)
+    @ManyToOne(() => User, {createForeignKeyConstraints: false})
     @JoinColumn({name: 'REQUESTER_USER_ID'})
-    requesterUserId?: User;
+    requesterUser?: User;
 
-    @Column({type: 'bigint'})
-    addressedUserId!: number;
+    @Column({type: 'bigint', unsigned: true})
+    addresseeUserId!: number;
 
-    @ManyToOne(() => User)
+    @ManyToOne(() => User, {createForeignKeyConstraints: false})
     @JoinColumn({name: 'ADDRESSEE_USER_ID'})
-    addresseeUserId?: User;
+    addresseeUser?: User;
 
     @Column({type: 'enum', enum: FriendshipStatus})
     status!: FriendshipStatus;
@@ -54,8 +54,8 @@ export class Friendship extends AggregateRoot {
     public static findBetween(userIdA: number, userIdB: number): Promise<Friendship | null> {
         return this.createQueryBuilder<Friendship>('friendship')
             .where(
-                '(friendship.requestUserId = :a AND friendship.addressedUserId = :b) OR ' +
-                '(friendship.requestUserId = :b AND friendship.addressedUserId = :a)',
+                '(friendship.requesterUserId = :a AND friendship.addresseeUserId = :b) OR ' +
+                '(friendship.requesterUserId = :b AND friendship.addresseeUserId = :a)',
                 {a: userIdA, b: userIdB},
             )
             .getOne();
@@ -67,9 +67,9 @@ export class Friendship extends AggregateRoot {
         limit: number = 20,
     ): Promise<[Friendship[], number]> {
         const qb = this.createQueryBuilder<Friendship>('f')
-            .leftJoinAndSelect('f.requestUser', 'requestUser')
-            .leftJoinAndSelect('f.addressedUser', 'addressedUser')
-            .where('(f.requestUserId = :userId OR f.addressedUserId = :userId)', {userId})
+            .leftJoinAndSelect('f.requesterUser', 'requestUser')
+            .leftJoinAndSelect('f.addresseeUser', 'addressedUser')
+            .where('(f.requesterUserId = :userId OR f.addresseeUserId = :userId)', {userId})
             .andWhere('f.status = :status', {status: FriendshipStatus.ACCEPTED})
             .orderBy('f.acceptedAt', 'ASC')
             .limit(limit);
@@ -92,8 +92,8 @@ export class Friendship extends AggregateRoot {
         }
 
         const friendship = new Friendship();
-        friendship.requestUserId = props.requestUserId;
-        friendship.addressedUserId = props.addressedUserId;
+        friendship.requesterUserId = props.requestUserId;
+        friendship.addresseeUserId = props.addressedUserId;
         friendship.status = FriendshipStatus.PENDING;
         friendship.inviteSource = props.inviteSource;
         friendship.acceptedAt = null;
@@ -102,15 +102,15 @@ export class Friendship extends AggregateRoot {
     }
 
     public getPeerUserId(myUserId: number): number {
-        return this.requestUserId === myUserId
-            ? this.addressedUserId
-            : this.requestUserId;
+        return this.requesterUserId === myUserId
+            ? this.addresseeUserId
+            : this.requesterUserId;
     }
 
     public getPeerUser(myUserId: number): User | undefined {
-        return this.requestUserId === myUserId
-            ? this.addresseeUserId
-            : this.requesterUserId;
+        return this.requesterUserId === myUserId
+            ? this.addresseeUser
+            : this.requesterUser;
     }
 
     // ---- Domain Methods ----
@@ -144,8 +144,8 @@ export class Friendship extends AggregateRoot {
         this.addDomainEvent(
             new FriendshipAcceptedEvent(
                 this.id,
-                this.requestUserId,
-                this.addressedUserId,
+                this.requesterUserId,
+                this.addresseeUserId,
                 this.acceptedAt,
             ),
         );
@@ -164,6 +164,6 @@ export class Friendship extends AggregateRoot {
     }
 
     public involves(userId: number): boolean {
-        return this.requestUserId === userId || this.addressedUserId === userId;
+        return this.requesterUserId === userId || this.addresseeUserId === userId;
     }
 }
