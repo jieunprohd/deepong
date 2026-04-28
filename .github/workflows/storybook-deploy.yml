@@ -39,9 +39,7 @@ jobs:
             
       - name: Install dependencies
         working-directory: deepong
-        run: pnpm install --frozen-lockfile
-        env:
-          PNPM_FLAGS: "--ignore-scripts"
+        run: pnpm install --no-optional
 
       - name: Build Storybook
         working-directory: deepong
