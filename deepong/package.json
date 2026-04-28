@@ -17,7 +17,7 @@
     "electron": "electron .",
     "electron:dev": "concurrently -k \"pnpm dev\" \"wait-on http://localhost:3000 && pnpm electron\"",
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build --output-dir storybook-static --base-path /deepong/"
+    "build-storybook": "storybook build --output-dir storybook-static"
   },
   "dependencies": {
     "axios": "^1.15.2",
