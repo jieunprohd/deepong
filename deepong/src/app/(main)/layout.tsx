@@ -101,7 +101,10 @@ export default function MainLayout({
             </nav>
           </div>
           <div className="mt-auto flex flex-col items-center gap-2">
-            <button className="flex h-11 w-11 items-center justify-center rounded-xl text-[#8b95a1] transition-all hover:bg-[#f2f4f6] hover:text-[#333d4b]">
+            <button
+              onClick={() => handleNavClick("/settings")}
+              className={`relative flex h-11 w-11 items-center justify-center rounded-xl transition-all ${pathname.startsWith("/settings") ? "bg-[#eaf0ff] text-[#2f6bff]" : "text-[#8b95a1] hover:bg-[#f2f4f6] hover:text-[#333d4b]"}`}
+            >
               <Settings size={22} strokeWidth={1.8} />
             </button>
             <Avatar
