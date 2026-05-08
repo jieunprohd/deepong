@@ -1,37 +1,45 @@
 # 빌드 컨텍스트(deepong/)에서 제외할 항목
 # Dockerfile이 apps/api/Dockerfile에 있어도 .dockerignore는 컨텍스트 루트만 인식
 
-# Node modules / build artifacts
+# Node modules / 빌드 산출물
 **/node_modules
 **/dist
+**/build
 **/.next
 **/.turbo
 **/coverage
 **/storybook-static
+**/*.tsbuildinfo
 
-# Dev tooling
+# 워크스페이스 잔여 lockfile (워크스페이스 root의 pnpm-lock.yaml만 사용)
+apps/*/pnpm-lock.yaml
+packages/*/pnpm-lock.yaml
+
+# 개발 도구 / IDE
 .git
 .github
+.gitignore
 .idea
 .vscode
 .husky
 .storybook
 .playwright-mcp
 
-# Logs
+# 로그
 *.log
 **/*.log
 
-# OS files
+# OS / 시스템 파일
 .DS_Store
+**/.DS_Store
 
-# Local env (운영 env는 docker-compose가 별도 주입)
+# 로컬 env (운영 env는 docker-compose --env-file로 주입)
 .env
 .env.*
 !.env.example
 !.env.production.example
 
-# Tests
+# 테스트 파일
 **/*.spec.ts
 **/*.test.ts
 **/test
@@ -42,14 +50,38 @@ src
 public
 electron
 stories
-*.tsbuildinfo
+.next
+out
 
-# 미디어/스크린샷
+# Next.js / 프론트 전용 설정 파일 (api는 사용 안 함)
+next.config.ts
+next.config.js
+next-env.d.ts
+postcss.config.mjs
+postcss.config.js
+tailwind.config.ts
+tailwind.config.js
+vitest.config.ts
+vitest.shims.d.ts
+eslint.config.mjs
+eslint.config.js
+tsconfig.json
+tsconfig.tsbuildinfo
+
+# 문서/스크린샷 (런타임에 불필요)
+claudedocs
+docs
 *.png
 *.jpg
 *.jpeg
+*.gif
+*.pdf
 !apps/**/*.png
 
-# Markdown (docker context 슬리밍)
 *.md
 !apps/api/README.md
+
+# Docker 자체 / Compose 파일 (이미지에 들어갈 필요 없음)
+Dockerfile.dev
+docker-compose*.yml
+.dockerignore

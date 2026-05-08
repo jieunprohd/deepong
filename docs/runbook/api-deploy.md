@@ -3,93 +3,219 @@
 대상 VM: **34.64.243.38** (GCP Compute Engine)
 구조: API + MySQL + Redis가 같은 VM에서 docker compose로 동작
 
+이 문서는 **처음부터 끝까지 한 번에 따라할 수 있게** 순서대로 작성됐습니다. 중간에 시도하다 꼬였다면 [§0 초기화](#0-초기화-필요할-때만)부터 시작하세요.
+
 ---
 
-## 1. 최초 1회 — VM 세팅
+## 0. 초기화 (필요할 때만)
 
-VM에 SSH로 접속한 뒤 아래 절차를 한 번만 실행합니다.
+이전에 deepong 사용자/키를 만들다 막혔다면 깨끗이 지우고 다시 시작합니다. **GCP Console의 브라우저 SSH로 접속**해서 본인 계정(`oje92453488` 같은 GCP 사용자)으로 실행하세요.
 
-### 1-1. Docker 설치 (Ubuntu 기준)
+```bash
+# deepong 사용자가 있다면 삭제 (홈 디렉터리도 함께 제거)
+sudo userdel -r deepong 2>/dev/null || true
+
+# Docker 그룹에 잘못된 매핑이 남아있을 수 있으니 정리
+getent group docker && sudo gpasswd -d deepong docker 2>/dev/null || true
+
+# 부트스트랩 사용자의 ssh-keygen 흔적 제거 (VM에 비밀키를 만든 적 있을 때)
+rm -f ~/.ssh/gha_deepong ~/.ssh/gha_deepong.pub
+
+# 기존 deepong-prod compose 스택이 있으면 정리
+if [ -d ~/deepong ]; then
+  cd ~/deepong && docker compose -f docker-compose.prod.yml down -v 2>/dev/null || true
+  cd ~ && rm -rf ~/deepong
+fi
+
+# 컨테이너/이미지 잔여물 정리
+docker system prune -af --volumes 2>/dev/null || true
+```
+
+> Docker 자체를 다시 깔고 싶으면:
+`sudo apt-get purge -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin && sudo rm -rf /var/lib/docker /etc/docker`
+
+---
+
+## 1. VM에 git + Docker 설치 (부트스트랩 사용자로)
+
+GCP 브라우저 SSH 또는 `gcloud compute ssh` 로 접속한 본인 계정(`oje92453488` 등)에서 실행합니다.
 
 ```bash
 sudo apt-get update
-sudo apt-get install -y ca-certificates curl gnupg
+sudo apt-get install -y git ca-certificates curl gnupg
 
+# Docker 공식 저장소 등록 (Ubuntu/Debian 자동 감지)
 sudo install -m 0755 -d /etc/apt/keyrings
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | \
-  sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+. /etc/os-release
+DOCKER_OS_DIR="$ID"   # 'ubuntu' 또는 'debian'
+DOCKER_CODENAME="$VERSION_CODENAME"
+
+curl -fsSL "https://download.docker.com/linux/${DOCKER_OS_DIR}/gpg" | \
+  sudo gpg --dearmor --yes -o /etc/apt/keyrings/docker.gpg
 sudo chmod a+r /etc/apt/keyrings/docker.gpg
 
 echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
-  https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo $VERSION_CODENAME) stable" | \
+  https://download.docker.com/linux/${DOCKER_OS_DIR} ${DOCKER_CODENAME} stable" | \
   sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 
 sudo apt-get update
 sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
-# sudo 없이 docker 사용
-sudo usermod -aG docker $USER
-newgrp docker
+# 설치 확인
+git --version
+docker --version
+docker compose version
 ```
 
-### 1-2. 배포용 사용자 + SSH 키 등록
+---
+
+## 2. 로컬 맥에서 SSH 키쌍 생성 (절대 VM에서 만들지 말 것)
+
+배포에 쓸 SSH 키쌍은 **본인 로컬 맥**에서 만듭니다. 비밀키가 VM에 남으면 보안상 위험.
 
 ```bash
-# 배포 전용 사용자 생성 (선택)
-sudo adduser --disabled-password --gecos '' deepong
-sudo usermod -aG docker deepong
-
-# GitHub Actions가 사용할 SSH 키페어 생성 (로컬 머신에서)
+# 로컬 맥 터미널
 ssh-keygen -t ed25519 -C 'gha-deepong-deploy' -f ~/.ssh/gha_deepong -N ''
 
-# 공개키를 VM의 deepong 유저에 등록
-ssh-copy-id -i ~/.ssh/gha_deepong.pub deepong@34.64.243.38
-# 또는 VM에서 직접:
-#   sudo -u deepong mkdir -p /home/deepong/.ssh
-#   sudo -u deepong tee /home/deepong/.ssh/authorized_keys < ~/.ssh/gha_deepong.pub
-#   sudo chmod 700 /home/deepong/.ssh && sudo chmod 600 /home/deepong/.ssh/authorized_keys
+# 공개키 내용 출력 — 다음 단계에 붙여넣기 위해 복사해 둡니다
+cat ~/.ssh/gha_deepong.pub
 ```
 
-비밀키(`~/.ssh/gha_deepong`) 전체를 GitHub repo Settings → Secrets에 `DEPLOY_SSH_KEY`로 등록.
+`~/.ssh/gha_deepong` (비밀키)는 두 곳에서 쓰입니다:
 
-### 1-3. 코드 클론
+- 로컬 맥에서 `ssh -i ~/.ssh/gha_deepong deepong@...` 접속용
+- GitHub Actions Secret `DEPLOY_SSH_KEY` 값 (이번 §6에서 등록)
+
+---
+
+## 3. 배포 전용 사용자 `deepong` 생성 (브라우저 SSH에서)
+
+다시 GCP 브라우저 SSH(`oje92453488` 세션)로 돌아가 실행:
 
 ```bash
-sudo -u deepong -i
+# 1) 사용자 생성 — 비밀번호 없이
+sudo adduser --disabled-password --gecos '' deepong
 
-# Github SSH 키 또는 deploy key를 등록한 상태에서
+# 2) docker 그룹에만 추가 (sudo는 일부러 부여 X)
+sudo usermod -aG docker deepong
+
+# 3) deepong의 .ssh 디렉터리 + authorized_keys 작성
+sudo install -d -m 700 -o deepong -g deepong /home/deepong/.ssh
+
+# ↓↓↓ 아래 'PASTE_PUBLIC_KEY_HERE' 자리에 §2에서 출력한 공개키 한 줄을 붙여넣기
+sudo tee /home/deepong/.ssh/authorized_keys > /dev/null <<'EOF'
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOzmCUnon9GgiQ7QW5ueupZfDayKPc1Lvq5479UNF+rZ gha-deepong-deploy
+EOF
+
+sudo chown deepong:deepong /home/deepong/.ssh/authorized_keys
+sudo chmod 600 /home/deepong/.ssh/authorized_keys
+
+# 4) 확인
+sudo cat /home/deepong/.ssh/authorized_keys
+groups deepong   # docker 포함 확인
+```
+
+> 위 HEREDOC의 `'EOF'` 따옴표가 중요합니다 (변수 치환 방지).
+
+---
+
+## 4. 로컬 맥에서 SSH 접속 테스트
+
+```bash
+ssh -i ~/.ssh/gha_deepong deepong@34.64.243.38
+```
+
+성공하면 `deepong@deepong-vm:~$` 프롬프트가 보입니다. 이제부터는 **로컬 → 원격 deepong** 으로 작업합니다.
+
+> 자주 쓰면 `~/.ssh/config`에 등록:
+> ```
+> Host deepong-prod
+>   HostName 34.64.243.38
+>   User deepong
+>   IdentityFile ~/.ssh/gha_deepong
+>   IdentitiesOnly yes
+> ```
+> 이후 `ssh deepong-prod` 만으로 접속 가능.
+
+---
+
+## 5. 코드 clone + GitHub deploy key
+
+deepong 사용자로 접속한 상태에서.
+
+### 5-1. (private repo인 경우) deploy key 생성·등록
+
+```bash
+# VM의 deepong 사용자로
+ssh-keygen -t ed25519 -C 'deepong-vm-deploy' -f ~/.ssh/github_deploy -N ''
+cat ~/.ssh/github_deploy.pub   # 출력 복사
+```
+
+GitHub: 해당 repo → Settings → **Deploy keys** → Add → 위 공개키 붙여넣고 **Read-only** 체크 → 저장.
+
+```bash
+# SSH config에 GitHub 키 매핑
+cat >> ~/.ssh/config <<'EOF'
+Host github.com
+  IdentityFile ~/.ssh/github_deploy
+  IdentitiesOnly yes
+EOF
+chmod 600 ~/.ssh/config
+
+# 첫 호스트키 신뢰
+ssh -T git@github.com
+# "Hi jieunprohd/deepong! You've successfully authenticated" 메시지 확인
+```
+
+### 5-2. clone
+
+```bash
 git clone git@github.com:jieunprohd/deepong.git ~/deepong
 cd ~/deepong
 git checkout develop
 ```
 
-> Github에 deploy 전용 SSH 키를 등록하거나, 토큰 기반 HTTPS clone을 사용해도 됩니다.
+> public repo면 `git clone https://github.com/jieunprohd/deepong.git ~/deepong`
 
-### 1-4. 운영 환경변수 작성
+---
+
+## 6. 운영 환경변수 작성
 
 ```bash
 cd ~/deepong
 cp .env.production.example .env.production
 chmod 600 .env.production
 
-# 강한 시크릿 생성 예시
-openssl rand -hex 32  # JWT_SECRET 등에 사용
+# 강한 시크릿 생성
+openssl rand -hex 32   # JWT_SECRET 등에 사용
 
 vim .env.production    # 실제 값으로 채우기
 ```
 
-### 1-5. 방화벽 규칙
+채워야 할 항목:
 
-GCP 콘솔 → VPC Network → Firewall에서 인그레스 규칙 추가:
+- `MYSQL_ROOT_PASSWORD`, `DB_PASSWORD` — 임의의 강한 패스워드
+- `JWT_SECRET` — 위 openssl 출력
+- `OAUTH_CLIENT_ID`, `OAUTH_CLIENT_PASSWORD` — Google Cloud Console에서 OAuth 클라이언트 발급
+- `KAKAO_CLIENT_ID` — 카카오 개발자 콘솔
+- 콜백 URL은 IP 기반 그대로 두거나 도메인 확보 후 변경
 
-| 이름 | 대상 | 소스 IP | 포트 |
-|------|------|---------|------|
-| allow-deepong-api | 인스턴스 태그 | 0.0.0.0/0 | tcp:4000 |
-| allow-ssh | 인스턴스 태그 | (조직 IP만 권장) | tcp:22 |
+---
 
-> MySQL(3306), Redis(6379)는 외부에 절대 열지 않습니다. compose 내부 네트워크로만 접근.
+## 7. GCP 방화벽 규칙
 
-### 1-6. 첫 기동
+GCP Console → VPC Network → Firewall → 인그레스 규칙 추가:
+
+| 이름                | 대상      | 소스 IP       | 포트         |
+|-------------------|---------|-------------|------------|
+| allow-deepong-api | 인스턴스 태그 | `0.0.0.0/0` | `tcp:4000` |
+| allow-ssh         | 인스턴스 태그 | (조직 IP만 권장) | `tcp:22`   |
+
+> MySQL(3306), Redis(6379)는 외부에 절대 열지 않습니다.
+
+---
+
+## 8. 첫 기동
 
 ```bash
 cd ~/deepong
@@ -98,52 +224,49 @@ docker compose -f docker-compose.prod.yml ps
 docker compose -f docker-compose.prod.yml logs -f api
 ```
 
-브라우저/curl로 `http://34.64.243.38:4000/api/v1` 접근 확인.
+브라우저/curl 로 `http://34.64.243.38:4000/api/v1` 접근 확인.
 
 ---
 
-## 2. GitHub Actions Secrets 등록
+## 9. GitHub Actions Secrets 등록
 
 Repo → Settings → Secrets and variables → Actions → New repository secret:
 
-| Name | 값 예시 |
-|------|---------|
-| `DEPLOY_HOST` | `34.64.243.38` |
-| `DEPLOY_USER` | `deepong` |
-| `DEPLOY_SSH_KEY` | `~/.ssh/gha_deepong` 비밀키 전체 (BEGIN/END 줄 포함) |
-| `DEPLOY_SSH_PORT` | `22` (기본 그대로면 생략 가능) |
+| Name              | 값                                                  |
+|-------------------|----------------------------------------------------|
+| `DEPLOY_HOST`     | `34.64.243.38`                                     |
+| `DEPLOY_USER`     | `deepong`                                          |
+| `DEPLOY_SSH_KEY`  | 로컬 맥의 `~/.ssh/gha_deepong` 비밀키 전체 (BEGIN/END 줄 포함) |
+| `DEPLOY_SSH_PORT` | `22` (기본이면 생략 가능)                                  |
+
+비밀키 내용 출력:
+
+```bash
+# 로컬 맥
+cat ~/.ssh/gha_deepong
+```
+
+이후 `develop` 브랜치에 api 관련 변경을 푸시하면 자동 배포가 트리거됩니다.
 
 ---
 
-## 3. 배포 흐름
-
-1. develop 브랜치에 push → `Deploy API` 워크플로우 자동 트리거 (api 관련 변경시에만)
-2. GHA 러너가 VM에 SSH 접속 → `git fetch && git reset --hard origin/develop`
-3. `.env.production` 존재 검증 후 `docker compose up -d --build`
-4. 헬스 체크: `http://VM:4000/api/v1` 응답 확인
-
-수동 트리거: GitHub Actions 탭에서 `Deploy API` → `Run workflow`.
-
----
-
-## 4. 자주 쓰는 운영 명령
+## 10. 자주 쓰는 운영 명령
 
 ```bash
 # 컨테이너 상태
 docker compose -f docker-compose.prod.yml ps
 
-# 로그 (api 만)
+# 로그
 docker compose -f docker-compose.prod.yml logs -f --tail=200 api
 
-# 재시작
+# 재시작 / 재기동
 docker compose -f docker-compose.prod.yml restart api
-
-# 전체 재기동
 docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
 
-# DB 접속 (컨테이너 내부)
+# DB 접속
+source .env.production
 docker compose -f docker-compose.prod.yml exec mysql \
-  mysql -u root -p$MYSQL_ROOT_PASSWORD deepong
+  mysql -u root -p"$MYSQL_ROOT_PASSWORD" "$DB_NAME"
 
 # Redis CLI
 docker compose -f docker-compose.prod.yml exec redis redis-cli
@@ -151,28 +274,45 @@ docker compose -f docker-compose.prod.yml exec redis redis-cli
 
 ---
 
-## 5. 트러블슈팅
+## 11. 트러블슈팅
 
-### 5-1. API가 DB에 연결 안 됨
+### 11-1. `Permission denied (publickey)` — SSH 접속 안 됨
+
+- 공개키가 `/home/deepong/.ssh/authorized_keys`에 정확히 들어갔는지 (BEGIN/END 줄 없는 한 줄)
+- 권한: `.ssh` 700, `authorized_keys` 600, 소유자 `deepong:deepong`
+- 로컬 키 지정: `ssh -i ~/.ssh/gha_deepong deepong@...` (잘못된 키가 자동 선택될 수 있음)
+
+### 11-2. `[sudo] password for deepong:` 프롬프트
+
+- deepong은 sudo 권한 자체가 필요 없습니다. sudo 명령을 쓰지 마세요.
+- 시스템 작업(apt 설치 등)은 부트스트랩 사용자(`oje92453488` 등)에서 수행.
+
+### 11-3. `git: command not found`
+
+- §1을 부트스트랩 사용자로 다시 실행했는지 확인.
+
+### 11-4. API가 DB에 연결 안 됨
+
 - `docker compose logs mysql` 로 MySQL이 정상 시작했는지
-- `docker compose logs api` 에서 ECONNREFUSED인지 확인
-- compose의 `depends_on.condition: service_healthy`가 동작하는지 healthcheck 확인
+- `docker compose logs api` 에서 ECONNREFUSED인지
+- `.env.production`의 `DB_PASSWORD`/`DB_USERNAME`이 mysql 환경변수와 일치하는지
 
-### 5-2. 빌드 시 OOM
-- VM 메모리가 작은 경우(< 2GB) 빌드 단계에서 멈출 수 있음
-- 임시로 swapfile 추가:
+### 11-5. 빌드 시 OOM
+
+- VM 메모리가 < 2GB면 swap 추가:
   ```bash
   sudo fallocate -l 2G /swapfile
   sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile
   echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
   ```
 
-### 5-3. TypeORM synchronize로 데이터 손실
-- 현재 `synchronize: true`라 엔티티 변경 시 자동 ALTER
-- 데모 단계 외 운영 본격화 전에 마이그레이션으로 전환 필요
-- 임시 백업: `docker compose exec mysql mysqldump -uroot -p<pw> deepong > backup-$(date +%F).sql`
+### 11-6. TypeORM synchronize로 데이터 손실 위험
 
-### 5-4. 도메인 + HTTPS 추가
+- 현재 `synchronize: true`라 엔티티 변경 시 자동 ALTER. 데모 단계 한정.
+- 운영 본격화 전 마이그레이션 도입 필요.
+- 백업: `docker compose exec mysql mysqldump -uroot -p"$PW" "$DB" > backup-$(date +%F).sql`
+
+### 11-7. 도메인 + HTTPS 추가
+
 - 도메인 발급 후 A record로 34.64.243.38 매핑
-- compose에 caddy 또는 nginx + certbot 컨테이너 추가
-- 추후 별도 PR
+- compose에 caddy 또는 nginx + certbot 컨테이너 추가 (별도 PR)
