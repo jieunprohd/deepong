@@ -12,8 +12,16 @@ import {
   deleteFriendship,
   SearchUserError,
 } from "@/features/invitation/api";
-import type { FriendItem, SearchUserResponse } from "@/features/invitation/types";
-import { UserPlus, Search, X } from "lucide-react";
+import type {
+  FriendItem,
+  SearchUserResponse,
+} from "@/features/invitation/types";
+import {
+  CommunicationNormModal,
+  CommunicationNorm,
+} from "@/features/relationship/CommunicationNormModal";
+import { DEFAULT_NORM, MOCK_NORMS } from "../_mock";
+import { UserPlus, Search, X, Bell, Star, Ban } from "lucide-react";
 
 export default function FriendsPage() {
   const [isInviteOpen, setIsInviteOpen] = useState(false);
@@ -35,6 +43,20 @@ export default function FriendsPage() {
   const [deleteTarget, setDeleteTarget] = useState<FriendItem | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Communication Norm state
+  const [normTarget, setNormTarget] = useState<FriendItem | null>(null);
+  const [norms, setNorms] =
+    useState<Record<string, CommunicationNorm>>(MOCK_NORMS);
+
+  const getNormFor = (friendId: number): CommunicationNorm => {
+    return norms[`f${friendId}`] ?? norms[String(friendId)] ?? DEFAULT_NORM;
+  };
+
+  const handleNormSave = (friend: FriendItem, norm: CommunicationNorm) => {
+    setNorms((prev) => ({ ...prev, [`f${friend.id}`]: norm }));
+    setNormTarget(null);
+  };
+
   const loadFriends = useCallback(async (cursor?: string) => {
     try {
       setError(false);
@@ -54,6 +76,7 @@ export default function FriendsPage() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadFriends();
   }, [loadFriends]);
 
@@ -248,27 +271,53 @@ export default function FriendsPage() {
       {/* Friends List */}
       <div className="flex-1 overflow-y-auto px-6 py-4">
         <div className="flex flex-col gap-1">
-          {friends.map((friend) => (
-            <div key={friend.id} className="group relative">
-              <Avatar
-                name={friend.peer.nickname}
-                color="blue"
-                profile={friend.peer.avatarUrl ?? undefined}
-                subLabel={
-                  <span className="text-[12px] text-[#8b95a1]">
-                    @{friend.peer.handle}
-                  </span>
-                }
-                lastMessage=" "
-              />
-              <button
-                onClick={() => setDeleteTarget(friend)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 flex h-7 w-7 items-center justify-center rounded-md text-[#b0b8c1] opacity-0 transition-all hover:bg-[#f4f4f5] hover:text-[#f04452] group-hover:opacity-100"
-              >
-                <X size={14} />
-              </button>
-            </div>
-          ))}
+          {friends.map((friend) => {
+            const norm = getNormFor(friend.id);
+            return (
+              <div key={friend.id} className="group relative">
+                <Avatar
+                  name={friend.peer.nickname}
+                  color="blue"
+                  profile={friend.peer.avatarUrl ?? undefined}
+                  subLabel={
+                    <span className="flex items-center gap-1.5 text-[12px] text-[#8b95a1]">
+                      @{friend.peer.handle}
+                      {norm.isPriority && (
+                        <span className="inline-flex items-center gap-0.5 rounded bg-[var(--warning-light)] px-1.5 py-0.5 text-[10px] font-bold text-[#b06b00]">
+                          <Star size={9} strokeWidth={2.5} />
+                          우선
+                        </span>
+                      )}
+                      {norm.isBlocked && (
+                        <span className="inline-flex items-center gap-0.5 rounded bg-[var(--danger-light)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--danger)]">
+                          <Ban size={9} strokeWidth={2.5} />
+                          차단
+                        </span>
+                      )}
+                    </span>
+                  }
+                  lastMessage=" "
+                />
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 transition-all group-hover:opacity-100">
+                  <button
+                    onClick={() => setNormTarget(friend)}
+                    className="flex h-7 items-center gap-1 rounded-md px-2 text-[11px] font-semibold text-[#6b7684] transition-all hover:bg-[#f2f4f6] hover:text-[#191f28]"
+                    title="알림 규범"
+                  >
+                    <Bell size={13} strokeWidth={2.2} />
+                    알림 규범
+                  </button>
+                  <button
+                    onClick={() => setDeleteTarget(friend)}
+                    className="flex h-7 w-7 items-center justify-center rounded-md text-[#b0b8c1] transition-all hover:bg-[#f4f4f5] hover:text-[#f04452]"
+                    title="친구 삭제"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
         </div>
 
         {hasNext && (
@@ -290,6 +339,23 @@ export default function FriendsPage() {
         isOpen={isInviteOpen}
         onClose={() => setIsInviteOpen(false)}
       />
+
+      {/* Communication Norm Modal */}
+      {normTarget && (
+        <CommunicationNormModal
+          isOpen={!!normTarget}
+          onClose={() => setNormTarget(null)}
+          peer={{
+            id: String(normTarget.id),
+            nickname: normTarget.peer.nickname,
+            handle: normTarget.peer.handle,
+            avatarUrl: normTarget.peer.avatarUrl ?? undefined,
+            color: "blue",
+          }}
+          initialNorm={getNormFor(normTarget.id)}
+          onSave={(norm) => handleNormSave(normTarget, norm)}
+        />
+      )}
 
       {/* Delete Confirmation Modal */}
       <Modal
