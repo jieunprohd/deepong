@@ -12,25 +12,6 @@ import type { ReactNode } from "react";
 import type { ProfileDto, WorkspaceDto } from "@/features/settings/types";
 import { API_BASE } from "@/lib/config";
 
-const DEMO_USER: ProfileDto = {
-  id: "demo-user",
-  email: "demo@deepong.dev",
-  nickname: "Oscar",
-  handle: "oscar",
-  bio: "디퐁 데모 계정",
-  avatarUrl: null,
-  timezone: "Asia/Seoul",
-  locale: "ko-KR",
-};
-
-const DEMO_WORKSPACE: WorkspaceDto = {
-  workDays: [1, 2, 3, 4, 5],
-  workStartTime: "10:00",
-  workEndTime: "18:30",
-  lunchBreak: true,
-  shareWorktime: true,
-};
-
 interface AuthState {
   user: ProfileDto | null;
   workspace: WorkspaceDto | null;
@@ -117,25 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const refreshMe = useCallback(async () => {
     let token = localStorage.getItem("accessToken");
 
-    // 백엔드 미가동 데모 환경 — API에 닿지 않으면 데모 유저로 폴백
-    const shouldUseDemoFallback = async () => {
-      try {
-        const res = await fetch(`${API_BASE}/health`, {
-          method: "GET",
-          signal: AbortSignal.timeout(800),
-        });
-        return !res.ok;
-      } catch {
-        return true;
-      }
-    };
-
     if (!token) {
-      if (await shouldUseDemoFallback()) {
-        setUserState(DEMO_USER);
-        setWorkspaceState(DEMO_WORKSPACE);
-        return;
-      }
       setUserState(null);
       setWorkspaceState(null);
       return;
@@ -151,11 +114,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     if (!me) {
-      if (await shouldUseDemoFallback()) {
-        setUserState(DEMO_USER);
-        setWorkspaceState(DEMO_WORKSPACE);
-        return;
-      }
       logout();
       return;
     }

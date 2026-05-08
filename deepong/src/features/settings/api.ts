@@ -40,39 +40,10 @@ async function parseError(res: Response): Promise<SettingsApiError> {
   return new SettingsApiError(code, res.status, message);
 }
 
-const DEMO_ME: MeResponse = {
-  user: {
-    id: "demo-user",
-    email: "demo@deepong.dev",
-    nickname: "Oscar",
-    handle: "oscar",
-    bio: "디퐁 데모 계정",
-    avatarUrl: null,
-    timezone: "Asia/Seoul",
-    locale: "ko-KR",
-  },
-  workspace: {
-    workDays: [1, 2, 3, 4, 5],
-    workStartTime: "10:00",
-    workEndTime: "18:30",
-    lunchBreak: true,
-    shareWorktime: true,
-  },
-};
-
 export async function getMe(): Promise<MeResponse> {
-  try {
-    const res = await fetch(`${API_BASE}/me`, {
-      headers: authHeaders(),
-      signal: AbortSignal.timeout(1500),
-    });
-    if (!res.ok) {
-      return DEMO_ME;
-    }
-    return res.json();
-  } catch {
-    return DEMO_ME;
-  }
+  const res = await fetch(`${API_BASE}/me`, { headers: authHeaders() });
+  if (!res.ok) throw await parseError(res);
+  return res.json();
 }
 
 export async function updateProfile(

@@ -78,78 +78,21 @@ export async function acceptInvitation(token: string): Promise<void> {
   }
 }
 
-const DEMO_FRIENDS: FriendListResponse = {
-  items: [
-    {
-      id: 1,
-      peer: {
-        id: 101,
-        nickname: "민수",
-        handle: "minsu",
-        avatarUrl: null,
-      },
-      status: "ACCEPTED",
-      acceptedAt: "2026-04-12T10:00:00.000Z",
-    },
-    {
-      id: 2,
-      peer: {
-        id: 102,
-        nickname: "지은",
-        handle: "jieun",
-        avatarUrl: null,
-      },
-      status: "ACCEPTED",
-      acceptedAt: "2026-04-15T10:00:00.000Z",
-    },
-    {
-      id: 3,
-      peer: {
-        id: 103,
-        nickname: "준호",
-        handle: "junho",
-        avatarUrl: null,
-      },
-      status: "ACCEPTED",
-      acceptedAt: "2026-03-21T10:00:00.000Z",
-    },
-    {
-      id: 4,
-      peer: {
-        id: 104,
-        nickname: "서연",
-        handle: "seoyeon",
-        avatarUrl: null,
-      },
-      status: "ACCEPTED",
-      acceptedAt: "2026-04-30T10:00:00.000Z",
-    },
-  ],
-  hasNext: false,
-  nextCursor: null,
-};
-
 export async function fetchFriends(
   cursor?: string,
 ): Promise<FriendListResponse> {
   const url = new URL(`${API_BASE}/friendship`);
   if (cursor) url.searchParams.set("cursor", cursor);
 
-  try {
-    const res = await fetch(url.toString(), {
-      headers: authHeaders(),
-      signal: AbortSignal.timeout(1500),
-    });
+  const res = await fetch(url.toString(), {
+    headers: authHeaders(),
+  });
 
-    if (!res.ok) {
-      // 인증 만료 등은 데모 데이터로 폴백 (mockup 데모 모드)
-      return DEMO_FRIENDS;
-    }
-
-    return res.json();
-  } catch {
-    return DEMO_FRIENDS;
+  if (!res.ok) {
+    throw new Error("친구 목록을 불러오는데 실패했습니다.");
   }
+
+  return res.json();
 }
 
 function mapError(status: number): InvitationError {
