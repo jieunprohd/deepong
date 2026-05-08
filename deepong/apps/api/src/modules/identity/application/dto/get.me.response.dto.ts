@@ -1,7 +1,26 @@
-import {User} from "@modules/identity/domain/user.entity";
-import {Workspace} from "@modules/workspace/domain/workspace.entity";
+import { User } from '@modules/identity/domain/user.entity';
+import { Workspace } from '@modules/workspace/domain/workspace.entity';
+
+export class WorkspaceView {
+  workDays: number[];
+  workStartTime: string;
+  workEndTime: string;
+  lunchBreak: boolean;
+  shareWorktime: boolean;
+
+  static from(workspace: Workspace): WorkspaceView {
+    const v = new WorkspaceView();
+    v.workDays = workspace.workDaysAsArray();
+    v.workStartTime = workspace.workStartTime;
+    v.workEndTime = workspace.workEndTime;
+    v.lunchBreak = workspace.lunchBreak;
+    v.shareWorktime = workspace.shareWorktime;
+    return v;
+  }
+}
 
 export class MeResult {
+  user: {
     id: number;
     email: string;
     nickname: string;
@@ -10,29 +29,22 @@ export class MeResult {
     avatarUrl: string | null;
     timezone: string;
     locale: string;
-    workspace: {
-        timezone: string;
-        workStartTime: string;
-        workEndTime: string;
-    } | null;
+  };
+  workspace: WorkspaceView | null;
 
-    public static from(user: User, workspace?: Workspace) {
-        const response = new MeResult();
-        response.id = user.id;
-        response.email = user.email;
-        response.nickname = user.nickname;
-        response.handle = user.handle;
-        response.bio = user.bio;
-        response.avatarUrl = user.avatarUrl;
-        response.timezone = user.timezone;
-        response.locale = user.locale;
-        response.workspace = workspace
-            ? {
-                timezone: workspace.timezone,
-                workStartTime: workspace.workStartTime,
-                workEndTime: workspace.workEndTime,
-            }
-            : null;
-        return response;
-    }
+  public static from(user: User, workspace?: Workspace | null): MeResult {
+    const response = new MeResult();
+    response.user = {
+      id: user.id,
+      email: user.email,
+      nickname: user.nickname,
+      handle: user.handle,
+      bio: user.bio,
+      avatarUrl: user.avatarUrl,
+      timezone: user.timezone,
+      locale: user.locale,
+    };
+    response.workspace = workspace ? WorkspaceView.from(workspace) : null;
+    return response;
+  }
 }
