@@ -1,0 +1,102 @@
+# 운영용 Compose. VM에서 git pull 후 다음으로 기동:
+#   docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
+#
+# 구성:
+#  - api    : NestJS @deepong/api (포트 4000)
+#  - mysql  : MySQL 8.0 (포트 3306, 외부 비공개)
+#  - redis  : Redis 7 (포트 6379, 외부 비공개)
+#
+# 외부에 노출되는 건 api(4000)뿐. mysql/redis는 docker network 내부에서만 접근.
+
+name: deepong-prod
+
+services:
+  api:
+    build:
+      context: ./deepong
+      dockerfile: apps/api/Dockerfile
+    image: deepong-api:latest
+    container_name: deepong-api
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      # DB
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      # Auth (JWT)
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ACCESS_EXPIRES_IN: ${JWT_ACCESS_EXPIRES_IN:-15m}
+      JWT_REFRESH_EXPIRES_IN_DAYS: ${JWT_REFRESH_EXPIRES_IN_DAYS:-7}
+      # Google OAuth
+      OAUTH_CLIENT_ID: ${OAUTH_CLIENT_ID:-}
+      OAUTH_CLIENT_PASSWORD: ${OAUTH_CLIENT_PASSWORD:-}
+      OAUTH_CALLBACK_URL: ${OAUTH_CALLBACK_URL:-}
+      # Kakao OAuth
+      KAKAO_CLIENT_ID: ${KAKAO_CLIENT_ID:-}
+      KAKAO_CALLBACK_URL: ${KAKAO_CALLBACK_URL:-}
+      # 프론트 CORS
+      WEB_ORIGIN: ${WEB_ORIGIN:-*}
+    ports:
+      - '4000:4000'
+    networks:
+      - deepong
+
+  mysql:
+    image: mysql:8.0
+    container_name: deepong-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+      - --default-authentication-plugin=caching_sha2_password
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'mysqladmin',
+          'ping',
+          '-h',
+          'localhost',
+          '-u',
+          'root',
+          '-p${MYSQL_ROOT_PASSWORD}',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - deepong
+    # 외부 노출 X — VM 내부에서 디버깅 시에만 임시로 ports 추가
+
+  redis:
+    image: redis:7-alpine
+    container_name: deepong-redis
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    networks:
+      - deepong
+
+volumes:
+  mysql_data:
+  redis_data:
+
+networks:
+  deepong:
+    driver: bridge

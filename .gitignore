@@ -9,3 +9,13 @@ build/
 # IDE
 .idea/
 .vscode/
+
+# Env (절대 커밋 금지)
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Local screenshots / playwright artifacts
+deepong/*.png
+deepong/.playwright-mcp/
