@@ -1,6 +1,6 @@
 # API 운영 배포 워크플로우
 #
-# 트리거: main 푸시 (api 관련 파일 변경) 또는 수동 트리거
+# 트리거: develop 푸시 (api/compose/Caddyfile 등 운영 관련 변경) 또는 수동 트리거
 #
 # 동작:
 #  1) VM에 SSH 접속
@@ -9,10 +9,13 @@
 #  4) 헬스 체크
 #
 # 필요 GitHub Secrets:
-#  - DEPLOY_HOST     : 34.64.243.38
-#  - DEPLOY_USER     : VM 사용자 (예: deepong)
-#  - DEPLOY_SSH_KEY  : VM에 등록된 사용자의 OpenSSH 비밀키 전체
-#  - DEPLOY_SSH_PORT : 보통 22 (변경 시 지정)
+#  - DEPLOY_HOST       : VM IP (예: 34.64.227.23)
+#  - DEPLOY_USER       : VM 사용자 (예: oje92453488 또는 deepong)
+#  - DEPLOY_SSH_KEY    : VM에 등록된 사용자의 OpenSSH 비밀키 전체
+#  - DEPLOY_SSH_PORT   : 보통 22 (변경 시 지정)
+#  - DEPLOY_HEALTH_URL : 헬스체크 URL (선택). 미지정 시 http://${DEPLOY_HOST}/api/v1
+#                       Caddy 미적용일 땐 http://${DEPLOY_HOST}:4000/api/v1 로 등록
+#                       도메인+HTTPS면 https://your-domain/api/v1 로 등록
 #
 # 보안 주의:
 #  - run: 블록 안에서 ${{ ... }} 직접 인터폴레이션을 피하고 env로 감싸 사용
@@ -27,6 +30,7 @@ on:
     paths:
       - 'deepong/apps/api/**'
       - 'docker-compose.prod.yml'
+      - 'Caddyfile'
       - '.github/workflows/deploy-api.yml'
       - '.env.production.example'
   workflow_dispatch:
@@ -45,6 +49,7 @@ jobs:
       DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
       DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
       DEPLOY_PORT: ${{ secrets.DEPLOY_SSH_PORT || '22' }}
+      HEALTH_URL: ${{ secrets.DEPLOY_HEALTH_URL }}
 
     steps:
       - name: Set up SSH agent
@@ -55,7 +60,11 @@ jobs:
       - name: Trust VM host key
         run: |
           mkdir -p ~/.ssh
-          ssh-keyscan -p "$DEPLOY_PORT" -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts
+          ssh-keyscan -T 10 -p "$DEPLOY_PORT" -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts
+          if ! [ -s ~/.ssh/known_hosts ]; then
+            echo "::error::ssh-keyscan returned empty result. Check DEPLOY_HOST and firewall (port 22 must be reachable)."
+            exit 1
+          fi
 
       - name: Deploy via SSH
         run: |
@@ -83,14 +92,19 @@ jobs:
 
       - name: Health check
         run: |
-          echo "Waiting for API to come up..."
+          # DEPLOY_HEALTH_URL secret이 있으면 그것 사용, 없으면 HTTP/80 기본
+          URL="${HEALTH_URL:-http://${DEPLOY_HOST}/api/v1}"
+          echo "Health check: $URL"
+
           for i in $(seq 1 30); do
-            code=$(curl -s --max-time 5 -o /dev/null -w '%{http_code}' "http://${DEPLOY_HOST}:4000/api/v1" || true)
+            code=$(curl -sk --max-time 5 -o /dev/null -w '%{http_code}' "$URL" || true)
             if [ "$code" = "200" ] || [ "$code" = "404" ]; then
               echo "API responding (HTTP $code)."
               exit 0
             fi
+            echo "  attempt $i: HTTP $code"
             sleep 3
           done
+
           echo "::warning::API health check did not return within timeout. Inspect VM logs."
           exit 1
