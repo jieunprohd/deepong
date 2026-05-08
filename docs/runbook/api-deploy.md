@@ -1,6 +1,6 @@
 # API 배포 운영 가이드
 
-대상 VM: **34.64.243.38** (GCP Compute Engine)
+대상 VM: **34.64.227.23** (GCP Compute Engine)
 구조: API + MySQL + Redis가 같은 VM에서 docker compose로 동작
 
 이 문서는 **처음부터 끝까지 한 번에 따라할 수 있게** 순서대로 작성됐습니다. 중간에 시도하다 꼬였다면 [§0 초기화](#0-초기화-필요할-때만)부터 시작하세요.
@@ -122,7 +122,7 @@ groups deepong   # docker 포함 확인
 ## 4. 로컬 맥에서 SSH 접속 테스트
 
 ```bash
-ssh -i ~/.ssh/gha_deepong deepong@34.64.243.38
+ssh -i ~/.ssh/gha_deepong deepong@34.64.227.23
 ```
 
 성공하면 `deepong@deepong-vm:~$` 프롬프트가 보입니다. 이제부터는 **로컬 → 원격 deepong** 으로 작업합니다.
@@ -130,7 +130,7 @@ ssh -i ~/.ssh/gha_deepong deepong@34.64.243.38
 > 자주 쓰면 `~/.ssh/config`에 등록:
 > ```
 > Host deepong-prod
->   HostName 34.64.243.38
+>   HostName 34.64.227.23
 >   User deepong
 >   IdentityFile ~/.ssh/gha_deepong
 >   IdentitiesOnly yes
@@ -204,18 +204,37 @@ vim .env.production    # 실제 값으로 채우기
 
 ## 7. GCP 방화벽 규칙
 
-GCP Console → VPC Network → Firewall → 인그레스 규칙 추가:
+GCP Console → VPC Network → Firewall → 인그레스 규칙 추가 (또는 gcloud CLI):
 
-| 이름                | 대상      | 소스 IP       | 포트         |
-|-------------------|---------|-------------|------------|
-| allow-deepong-api | 인스턴스 태그 | `0.0.0.0/0` | `tcp:4000` |
-| allow-ssh         | 인스턴스 태그 | (조직 IP만 권장) | `tcp:22`   |
+| 이름                  | 대상              | 소스 IP       | 포트                  |
+|----------------------|------------------|--------------|----------------------|
+| `allow-ssh`          | All instances    | `0.0.0.0/0`  | `tcp:22`             |
+| `allow-deepong-http` | All instances    | `0.0.0.0/0`  | `tcp:80,tcp:443`     |
 
-> MySQL(3306), Redis(6379)는 외부에 절대 열지 않습니다.
+```bash
+gcloud compute firewall-rules create allow-ssh \
+  --direction=INGRESS --action=ALLOW \
+  --rules=tcp:22 --source-ranges=0.0.0.0/0
+
+gcloud compute firewall-rules create allow-deepong-http \
+  --direction=INGRESS --action=ALLOW \
+  --rules=tcp:80,tcp:443 --source-ranges=0.0.0.0/0
+```
+
+> MySQL(3306), Redis(6379), API(4000)는 외부에 절대 열지 않습니다. 모두 Caddy 통해 80/443으로만 접근.
+
+검증:
+```bash
+nc -zv 34.64.227.23 22
+nc -zv 34.64.227.23 80
+nc -zv 34.64.227.23 443
+```
 
 ---
 
-## 8. 첫 기동
+## 8. 첫 기동 (HTTP 모드)
+
+도메인 없이 IP로 먼저 띄우는 단계.
 
 ```bash
 cd ~/deepong
@@ -224,20 +243,93 @@ docker compose -f docker-compose.prod.yml ps
 docker compose -f docker-compose.prod.yml logs -f api
 ```
 
-브라우저/curl 로 `http://34.64.243.38:4000/api/v1` 접근 확인.
+5개 컨테이너가 모두 `Up`이면 정상:
+- `deepong-caddy` (포트 80, 443)
+- `deepong-api` (내부)
+- `deepong-mysql` (healthy, 내부)
+- `deepong-redis` (내부)
+
+브라우저/curl로 접근 확인:
+```bash
+curl http://34.64.227.23/api/v1
+```
 
 ---
 
-## 9. GitHub Actions Secrets 등록
+## 9. 무료 도메인 + 자동 HTTPS 적용
+
+DuckDNS, no-ip 등 **무료 서브도메인**으로 자동 HTTPS를 발급받습니다.
+
+### 9-1. 도메인 발급
+
+**DuckDNS 추천** (가장 단순):
+1. https://www.duckdns.org 접속 → GitHub/Google 계정으로 로그인
+2. 원하는 서브도메인 입력 (예: `deepong-demo`) → **add domain**
+3. 발급된 도메인: `deepong-demo.duckdns.org`
+4. 같은 페이지 **current ip** 칸에 `34.64.227.23` 입력 → **update ip**
+
+> 다른 옵션:
+> - https://www.no-ip.com (무료 30일마다 갱신 필요)
+> - https://freedns.afraid.org (다양한 도메인 제공)
+> - 본인 도메인 보유 시 그대로 사용
+
+### 9-2. .env.production에 DOMAIN 추가
+
+```bash
+cd ~/deepong
+nano .env.production
+```
+
+다음 줄 추가/수정:
+```
+DOMAIN=deepong-demo.duckdns.org
+OAUTH_CALLBACK_URL=https://deepong-demo.duckdns.org/api/v1/auth/google/callback
+KAKAO_CALLBACK_URL=https://deepong-demo.duckdns.org/api/v1/auth/kakao/callback
+WEB_ORIGIN=https://your-frontend-domain.com
+```
+
+> CORS는 프론트엔드 origin과 정확히 일치해야 함. 프론트도 같은 도메인이거나 Vercel/Netlify URL이라면 그 값 입력. 데모면 `*` 유지.
+
+### 9-3. 재기동 + 인증서 자동 발급
+
+```bash
+docker compose -f docker-compose.prod.yml --env-file .env.production up -d
+docker compose -f docker-compose.prod.yml logs -f caddy
+```
+
+Caddy 로그에서 다음 메시지 보이면 인증서 발급 성공:
+```
+certificate obtained successfully
+```
+
+(보통 30초~2분 소요. Let's Encrypt가 도메인의 80번 포트로 ACME challenge를 보내 검증.)
+
+### 9-4. 검증
+
+```bash
+curl https://deepong-demo.duckdns.org/api/v1
+# 또는 브라우저 접속 — 자물쇠 마크 확인
+```
+
+### 9-5. OAuth 콜백 등록
+
+Google Cloud Console / 카카오 디벨로퍼에서 콜백 URL 화이트리스트에 추가:
+- `https://deepong-demo.duckdns.org/api/v1/auth/google/callback`
+- `https://deepong-demo.duckdns.org/api/v1/auth/kakao/callback`
+
+---
+
+## 10. GitHub Actions Secrets 등록
 
 Repo → Settings → Secrets and variables → Actions → New repository secret:
 
-| Name              | 값                                                  |
-|-------------------|----------------------------------------------------|
-| `DEPLOY_HOST`     | `34.64.243.38`                                     |
-| `DEPLOY_USER`     | `deepong`                                          |
-| `DEPLOY_SSH_KEY`  | 로컬 맥의 `~/.ssh/gha_deepong` 비밀키 전체 (BEGIN/END 줄 포함) |
-| `DEPLOY_SSH_PORT` | `22` (기본이면 생략 가능)                                  |
+| Name                  | 값                                                  |
+|-----------------------|----------------------------------------------------|
+| `DEPLOY_HOST`         | `34.64.227.23`                                     |
+| `DEPLOY_USER`         | VM 사용자 (예: `oje92453488`)                          |
+| `DEPLOY_SSH_KEY`      | 로컬 맥의 `~/.ssh/gha_deepong` 비밀키 전체 (BEGIN/END 줄 포함) |
+| `DEPLOY_SSH_PORT`     | `22` (기본이면 생략 가능)                                  |
+| `DEPLOY_HEALTH_URL`   | `https://deepong-demo.duckdns.org/api/v1` (도메인 적용 후) |
 
 비밀키 내용 출력:
 
@@ -246,7 +338,7 @@ Repo → Settings → Secrets and variables → Actions → New repository secre
 cat ~/.ssh/gha_deepong
 ```
 
-이후 `develop` 브랜치에 api 관련 변경을 푸시하면 자동 배포가 트리거됩니다.
+이후 `develop` 브랜치에 api/compose/Caddyfile 관련 변경을 푸시하면 자동 배포 트리거.
 
 ---
 
@@ -314,5 +406,5 @@ docker compose -f docker-compose.prod.yml exec redis redis-cli
 
 ### 11-7. 도메인 + HTTPS 추가
 
-- 도메인 발급 후 A record로 34.64.243.38 매핑
+- 도메인 발급 후 A record로 34.64.227.23 매핑
 - compose에 caddy 또는 nginx + certbot 컨테이너 추가 (별도 PR)
