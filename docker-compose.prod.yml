@@ -2,15 +2,36 @@
 #   docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
 #
 # 구성:
-#  - api    : NestJS @deepong/api (포트 4000)
-#  - mysql  : MySQL 8.0 (포트 3306, 외부 비공개)
-#  - redis  : Redis 7 (포트 6379, 외부 비공개)
+#  - caddy  : 리버스 프록시 + 자동 HTTPS (포트 80, 443)
+#  - api    : NestJS @deepong/api (내부 포트 4000, 외부 비공개)
+#  - mysql  : MySQL 8.0 (내부, 외부 비공개)
+#  - redis  : Redis 7 (내부, 외부 비공개)
 #
-# 외부에 노출되는 건 api(4000)뿐. mysql/redis는 docker network 내부에서만 접근.
+# 외부에 노출되는 건 caddy(80, 443)뿐. api/mysql/redis는 docker network 내부에서만 접근.
+# DOMAIN 환경변수가 있으면 자동 HTTPS, 없으면 :80 HTTP 프록시만.
 
 name: deepong-prod
 
 services:
+  caddy:
+    image: caddy:2-alpine
+    container_name: deepong-caddy
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      DOMAIN: ${DOMAIN:-}
+    ports:
+      - '80:80'
+      - '443:443'
+      - '443:443/udp'
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - deepong
+
   api:
     build:
       context: ./deepong
@@ -45,8 +66,7 @@ services:
       KAKAO_CALLBACK_URL: ${KAKAO_CALLBACK_URL:-}
       # 프론트 CORS
       WEB_ORIGIN: ${WEB_ORIGIN:-*}
-    ports:
-      - '4000:4000'
+    # api는 caddy로만 접근 — 외부 ports 노출 안 함
     networks:
       - deepong
 
@@ -82,7 +102,6 @@ services:
       retries: 10
     networks:
       - deepong
-    # 외부 노출 X — VM 내부에서 디버깅 시에만 임시로 ports 추가
 
   redis:
     image: redis:7-alpine
@@ -96,6 +115,8 @@ services:
 volumes:
   mysql_data:
   redis_data:
+  caddy_data:
+  caddy_config:
 
 networks:
   deepong:
