@@ -8,6 +8,10 @@ import EmptyState from "../../../_components/EmptyState";
 import MessageComposer from "../../../_components/MessageComposer";
 import { ToneType } from "../../../_components/Chip/types";
 import {
+  HandRaisePanel,
+  HandRaiseUser,
+} from "@/features/communication/HandRaisePanel";
+import {
   Search,
   Info,
   MoreVertical,
@@ -26,6 +30,44 @@ export default function ChatDetailPage() {
   const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
+
+  // 손들기 상태 (메시지 ID → 본인이 손들었는지, 손든 사람들)
+  const [handRaiseState, setHandRaiseState] = useState<
+    Record<string, { isRaised: boolean; raisedBy: HandRaiseUser[] }>
+  >({});
+
+  const getHandRaise = (msgId: string, defaultRaisedBy: HandRaiseUser[]) => {
+    return (
+      handRaiseState[msgId] ?? { isRaised: false, raisedBy: defaultRaisedBy }
+    );
+  };
+
+  const toggleHandRaise = (msgId: string, defaultRaisedBy: HandRaiseUser[]) => {
+    const current = getHandRaise(msgId, defaultRaisedBy);
+    const me: HandRaiseUser = {
+      id: "me",
+      name: "나",
+      color: "blue",
+      raisedAt: "방금",
+    };
+    if (current.isRaised) {
+      setHandRaiseState((prev) => ({
+        ...prev,
+        [msgId]: {
+          isRaised: false,
+          raisedBy: current.raisedBy.filter((u) => u.id !== "me"),
+        },
+      }));
+    } else {
+      setHandRaiseState((prev) => ({
+        ...prev,
+        [msgId]: {
+          isRaised: true,
+          raisedBy: [...current.raisedBy, me],
+        },
+      }));
+    }
+  };
 
   // 해당 ID의 채팅방 찾기
   const currentChat = MOCK_CHATS.find((c) => c.id === chatId);
@@ -237,61 +279,86 @@ export default function ChatDetailPage() {
               <div className="h-px flex-1 bg-[#e5e8eb]" />
             </div>
 
-            {currentChat.messages?.map((msg) => (
-              <div
-                key={msg.id}
-                id={`msg-${msg.id}`}
-                className={`flex gap-2.5 ${msg.isMine ? "flex-row-reverse" : ""}`}
-              >
-                {!msg.isMine && (
-                  <Avatar
-                    name={currentChat.name}
-                    color={currentChat.color}
-                    size="sm"
-                  />
-                )}
-                <div
-                  className={`flex flex-col gap-1 max-w-[70%] ${msg.isMine ? "items-end" : ""}`}
-                >
-                  {!msg.isMine && (
-                    <span className="px-1 text-[12px] font-semibold text-[#4e5968]">
-                      {currentChat.name}
-                    </span>
-                  )}
+            {currentChat.messages?.map((msg) => {
+              const senderName = msg.isMine
+                ? "나"
+                : (msg.senderName ?? currentChat.name);
+              const senderColor = msg.isMine
+                ? "blue"
+                : (msg.senderColor ?? currentChat.color);
+              const showHandRaise =
+                currentChat.isGroup &&
+                msg.tone === "ask" &&
+                !msg.isMine &&
+                msg.raisedBy !== undefined;
+
+              return (
+                <div key={msg.id} className="space-y-2">
                   <div
-                    className={`group relative rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed shadow-sm transition-all
-                    ${
-                      msg.isMine
-                        ? "bg-[#2f6bff] text-white rounded-tr-[4px]"
-                        : "bg-white text-[#191f28] border border-[#e5e8eb] rounded-tl-[4px]"
-                    }
-                    ${msg.tone === "ask" ? "border-l-[3px] border-l-[#ff9500]" : ""}
-                    ${msg.tone === "share" ? "bg-[#e8f2fe] text-[#1e5fc0] border-[#e8f2fe]" : ""}
-                    ${isSearching && searchResults[currentMatchIndex] === msg.id ? "ring-2 ring-[#ffc107] ring-offset-2" : ""}
-                  `}
+                    id={`msg-${msg.id}`}
+                    className={`flex gap-2.5 ${msg.isMine ? "flex-row-reverse" : ""}`}
                   >
-                    {msg.tone && (
-                      <div className="mb-1.5 flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider opacity-70">
-                        {msg.tone === "ask"
-                          ? "🤔 물어봄"
-                          : msg.tone === "share"
-                            ? "📎 공유"
-                            : "💬 수다"}
+                    {!msg.isMine && (
+                      <Avatar name={senderName} color={senderColor} size="sm" />
+                    )}
+                    <div
+                      className={`flex flex-col gap-1 max-w-[70%] ${msg.isMine ? "items-end" : ""}`}
+                    >
+                      {!msg.isMine && (
+                        <span className="px-1 text-[12px] font-semibold text-[#4e5968]">
+                          {senderName}
+                        </span>
+                      )}
+                      <div
+                        className={`group relative rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed shadow-sm transition-all
+                        ${
+                          msg.isMine
+                            ? "bg-[#2f6bff] text-white rounded-tr-[4px]"
+                            : "bg-white text-[#191f28] border border-[#e5e8eb] rounded-tl-[4px]"
+                        }
+                        ${msg.tone === "ask" ? "border-l-[3px] border-l-[#ff9500]" : ""}
+                        ${msg.tone === "share" ? "bg-[#e8f2fe] text-[#1e5fc0] border-[#e8f2fe]" : ""}
+                        ${isSearching && searchResults[currentMatchIndex] === msg.id ? "ring-2 ring-[#ffc107] ring-offset-2" : ""}
+                      `}
+                      >
+                        {msg.tone && (
+                          <div className="mb-1.5 flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider opacity-70">
+                            {msg.tone === "ask"
+                              ? "🤔 물어봄"
+                              : msg.tone === "share"
+                                ? "📎 공유"
+                                : "💬 수다"}
+                          </div>
+                        )}
+                        {highlightText(msg.text, searchQuery, msg.id)}
                       </div>
-                    )}
-                    {highlightText(msg.text, searchQuery, msg.id)}
+                      <div
+                        className={`flex items-center gap-1.5 px-1 text-[10px] text-[#b0b8c1] ${msg.isMine ? "flex-row-reverse" : ""}`}
+                      >
+                        <span>{msg.time}</span>
+                        {msg.isMine && msg.isRead && (
+                          <span className="font-bold text-[#2f6bff]">읽음</span>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <div
-                    className={`flex items-center gap-1.5 px-1 text-[10px] text-[#b0b8c1] ${msg.isMine ? "flex-row-reverse" : ""}`}
-                  >
-                    <span>{msg.time}</span>
-                    {msg.isMine && msg.isRead && (
-                      <span className="font-bold text-[#2f6bff]">읽음</span>
-                    )}
-                  </div>
+
+                  {showHandRaise && msg.raisedBy && (
+                    <div className="ml-10 max-w-[480px]">
+                      <HandRaisePanel
+                        questionText={msg.text}
+                        questionAuthor={senderName}
+                        raisedBy={getHandRaise(msg.id, msg.raisedBy).raisedBy}
+                        isRaised={getHandRaise(msg.id, msg.raisedBy).isRaised}
+                        onToggle={() =>
+                          toggleHandRaise(msg.id, msg.raisedBy ?? [])
+                        }
+                      />
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
 
             {currentChat.presence === "working" && (
               <div className="mx-auto mt-8 flex max-w-[80%] items-center gap-2 rounded-full bg-white/60 backdrop-blur-sm border border-[#e5e8eb] px-4 py-2 text-[11px] text-[#6b7684] shadow-sm">
