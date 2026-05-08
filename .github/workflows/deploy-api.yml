@@ -1,0 +1,96 @@
+# API 운영 배포 워크플로우
+#
+# 트리거: main 푸시 (api 관련 파일 변경) 또는 수동 트리거
+#
+# 동작:
+#  1) VM에 SSH 접속
+#  2) ~/deepong 에서 git pull
+#  3) docker compose -f docker-compose.prod.yml up -d --build
+#  4) 헬스 체크
+#
+# 필요 GitHub Secrets:
+#  - DEPLOY_HOST     : 34.64.243.38
+#  - DEPLOY_USER     : VM 사용자 (예: deepong)
+#  - DEPLOY_SSH_KEY  : VM에 등록된 사용자의 OpenSSH 비밀키 전체
+#  - DEPLOY_SSH_PORT : 보통 22 (변경 시 지정)
+#
+# 보안 주의:
+#  - run: 블록 안에서 ${{ ... }} 직접 인터폴레이션을 피하고 env로 감싸 사용
+#  - HEREDOC을 'REMOTE' 처럼 따옴표로 묶어 로컬 변수 확장 방지
+
+name: Deploy API
+
+on:
+  push:
+    branches:
+      - develop
+    paths:
+      - 'deepong/apps/api/**'
+      - 'docker-compose.prod.yml'
+      - '.github/workflows/deploy-api.yml'
+      - '.env.production.example'
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-api
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to VM
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    env:
+      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+      DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+      DEPLOY_PORT: ${{ secrets.DEPLOY_SSH_PORT || '22' }}
+
+    steps:
+      - name: Set up SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+
+      - name: Trust VM host key
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -p "$DEPLOY_PORT" -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts
+
+      - name: Deploy via SSH
+        run: |
+          ssh -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" bash -se <<'REMOTE'
+          set -euo pipefail
+
+          cd ~/deepong
+
+          echo "[1/4] git pull"
+          git fetch --quiet origin develop
+          git reset --hard origin/develop
+
+          echo "[2/4] env 검증"
+          if [ ! -f .env.production ]; then
+            echo "ERROR: .env.production 파일이 VM에 없습니다. .env.production.example을 복사해 채워두세요." >&2
+            exit 1
+          fi
+
+          echo "[3/4] docker compose build & up"
+          docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build --remove-orphans
+
+          echo "[4/4] 정리"
+          docker image prune -f --filter "until=24h"
+          REMOTE
+
+      - name: Health check
+        run: |
+          echo "Waiting for API to come up..."
+          for i in $(seq 1 30); do
+            code=$(curl -s --max-time 5 -o /dev/null -w '%{http_code}' "http://${DEPLOY_HOST}:4000/api/v1" || true)
+            if [ "$code" = "200" ] || [ "$code" = "404" ]; then
+              echo "API responding (HTTP $code)."
+              exit 0
+            fi
+            sleep 3
+          done
+          echo "::warning::API health check did not return within timeout. Inspect VM logs."
+          exit 1
