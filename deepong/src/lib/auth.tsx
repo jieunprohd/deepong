@@ -10,8 +10,7 @@ import {
 } from "react";
 import type { ReactNode } from "react";
 import type { ProfileDto, WorkspaceDto } from "@/features/settings/types";
-
-const API_BASE = "http://localhost:4000/api/v1";
+import { API_BASE } from "@/lib/config";
 
 const DEMO_USER: ProfileDto = {
   id: "demo-user",
