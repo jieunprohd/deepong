@@ -1,14 +1,30 @@
 "use client";
 
-import React, { useEffect } from "react";
-import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import React, { useEffect, useState } from "react";
+import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth";
-import { MOCK_CHATS, ChatItem } from "./_mock";
-import { Home, MessageSquare, Users, Search, Settings } from "lucide-react";
+import { MOCK_CHATS, MOCK_NOTIFICATIONS, ChatItem } from "./_mock";
+import {
+  Home,
+  MessageSquare,
+  Users,
+  Settings,
+  Bell,
+  Brain,
+  Search,
+} from "lucide-react";
 import Chip from "../_components/Chip";
 import { Avatar } from "../_components/Avatar";
 import { useSearch } from "@/hooks/useSearch";
 import { useResizable } from "@/hooks/useResizable";
+import {
+  NotificationCenter,
+  NotificationItem,
+} from "@/features/attention/NotificationCenter";
+import {
+  PresenceSelector,
+  Presence,
+} from "@/features/attention/PresenceSelector";
 
 export default function MainLayout({
   children,
@@ -18,11 +34,21 @@ export default function MainLayout({
   const { user, isLoading, isAuthenticated } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   // URL 경로에서 /chat/123 형태의 ID 추출
   const selectedId = pathname.startsWith("/chat/")
     ? pathname.split("/").pop()
     : null;
+
+  // 알림 드로어
+  const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const [notifications, setNotifications] =
+    useState<NotificationItem[]>(MOCK_NOTIFICATIONS);
+  const unreadCount = notifications.filter((n) => !n.isRead).length;
+
+  // 프레즌스 (사이드바 하단 아바타)
+  const [presence, setPresence] = useState<Presence>("focus");
+  const [statusMessage, setStatusMessage] =
+    useState<string>("집중 중 — 오후 4:00까지");
 
   const {
     width: chatListWidth,
@@ -54,6 +80,21 @@ export default function MainLayout({
 
   const handleNavClick = (path: string) => {
     router.push(path);
+  };
+
+  const handleNotifSelect = (id: string) => {
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)),
+    );
+    setIsNotifOpen(false);
+  };
+
+  const handleNotifDismiss = (id: string) => {
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
+  };
+
+  const handleMarkAllRead = () => {
+    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
   };
 
   if (isLoading || !isAuthenticated) {
@@ -95,25 +136,52 @@ export default function MainLayout({
               >
                 <Users size={22} strokeWidth={1.8} />
               </button>
-              <button className="flex h-11 w-11 items-center justify-center rounded-xl text-[#8b95a1] transition-all hover:bg-[#f2f4f6] hover:text-[#333d4b]">
-                <Search size={22} strokeWidth={1.8} />
+              <button
+                onClick={() => handleNavClick("/focus")}
+                className={`relative flex h-11 w-11 items-center justify-center rounded-xl transition-all ${pathname.startsWith("/focus") ? "bg-[#eaf0ff] text-[#2f6bff]" : "text-[#8b95a1] hover:bg-[#f2f4f6]"}`}
+                aria-label="집중 모드"
+              >
+                <Brain size={22} strokeWidth={1.8} />
+              </button>
+              <button
+                onClick={() => setIsNotifOpen((v) => !v)}
+                className={`relative flex h-11 w-11 items-center justify-center rounded-xl transition-all ${isNotifOpen ? "bg-[#eaf0ff] text-[#2f6bff]" : "text-[#8b95a1] hover:bg-[#f2f4f6]"}`}
+                aria-label="알림"
+              >
+                <Bell size={22} strokeWidth={1.8} />
+                {unreadCount > 0 && (
+                  <div className="absolute right-1.5 top-1.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[#f04452] px-1 text-[10px] font-bold text-white">
+                    {unreadCount}
+                  </div>
+                )}
               </button>
             </nav>
           </div>
-          <div className="mt-auto flex flex-col items-center gap-2">
+          <div className="mt-auto flex flex-col items-center gap-3">
             <button
               onClick={() => handleNavClick("/settings")}
               className={`relative flex h-11 w-11 items-center justify-center rounded-xl transition-all ${pathname.startsWith("/settings") ? "bg-[#eaf0ff] text-[#2f6bff]" : "text-[#8b95a1] hover:bg-[#f2f4f6] hover:text-[#333d4b]"}`}
             >
               <Settings size={22} strokeWidth={1.8} />
             </button>
-            <Avatar
-              name={user?.nickname || "O"}
-              size="lg"
-              presence="focus"
-              className="cursor-pointer"
-              color="blue"
-            />
+            <div className="relative">
+              <Avatar
+                name={user?.nickname || "O"}
+                size="lg"
+                presence={presence}
+                color="blue"
+                hover={false}
+              />
+              <div className="absolute -right-1 -bottom-1">
+                <PresenceSelector
+                  compact
+                  value={presence}
+                  onChange={setPresence}
+                  statusMessage={statusMessage}
+                  onStatusMessageChange={setStatusMessage}
+                />
+              </div>
+            </div>
           </div>
         </aside>
 
@@ -223,6 +291,30 @@ export default function MainLayout({
           {children}
         </main>
       </div>
+
+      {/* Notification Drawer */}
+      {isNotifOpen && (
+        <>
+          <div
+            className="fixed inset-0 z-30 bg-black/10 animate-in fade-in duration-150"
+            onClick={() => setIsNotifOpen(false)}
+            aria-hidden
+          />
+          <aside
+            className="fixed left-[72px] top-0 z-40 flex h-screen w-[380px] flex-col border-r border-[#e5e8eb] bg-white shadow-[var(--shadow-xl)] animate-in slide-in-from-left-2 duration-200"
+            role="dialog"
+            aria-label="알림"
+          >
+            <NotificationCenter
+              notifications={notifications}
+              onSelect={handleNotifSelect}
+              onDismiss={handleNotifDismiss}
+              onMarkAllRead={handleMarkAllRead}
+              onClose={() => setIsNotifOpen(false)}
+            />
+          </aside>
+        </>
+      )}
     </div>
   );
 }
