@@ -1,0 +1,55 @@
+# 빌드 컨텍스트(deepong/)에서 제외할 항목
+# Dockerfile이 apps/api/Dockerfile에 있어도 .dockerignore는 컨텍스트 루트만 인식
+
+# Node modules / build artifacts
+**/node_modules
+**/dist
+**/.next
+**/.turbo
+**/coverage
+**/storybook-static
+
+# Dev tooling
+.git
+.github
+.idea
+.vscode
+.husky
+.storybook
+.playwright-mcp
+
+# Logs
+*.log
+**/*.log
+
+# OS files
+.DS_Store
+
+# Local env (운영 env는 docker-compose가 별도 주입)
+.env
+.env.*
+!.env.example
+!.env.production.example
+
+# Tests
+**/*.spec.ts
+**/*.test.ts
+**/test
+**/__tests__
+
+# 모노레포의 다른 워크스페이스 (api 빌드와 무관)
+src
+public
+electron
+stories
+*.tsbuildinfo
+
+# 미디어/스크린샷
+*.png
+*.jpg
+*.jpeg
+!apps/**/*.png
+
+# Markdown (docker context 슬리밍)
+*.md
+!apps/api/README.md
