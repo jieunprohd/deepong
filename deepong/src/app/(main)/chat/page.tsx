@@ -2,20 +2,19 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { MOCK_CHATS } from "../_mock";
+import { useChat } from "@/lib/chat";
 import EmptyState from "../../_components/EmptyState";
 
 export default function ChatIndexPage() {
   const router = useRouter();
+  const { rooms, isLoading } = useChat();
 
   useEffect(() => {
-    // 첫 번째 대화가 있으면 그리로 리다이렉트
-    if (MOCK_CHATS.length > 0) {
-      router.replace(`/chat/${MOCK_CHATS[0].id}`);
+    if (!isLoading && rooms.length > 0) {
+      router.replace(`/chat/${rooms[0].id}`);
     }
-  }, [router]);
+  }, [isLoading, rooms, router]);
 
-  // 리다이렉트 전이나 대화가 아예 없을 때 표시
   return (
     <div className="flex h-full items-center justify-center bg-white">
       <EmptyState
