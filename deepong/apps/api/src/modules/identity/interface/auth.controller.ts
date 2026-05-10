@@ -10,6 +10,7 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
+import { JwtAuthGuard } from '../infrastructure/jwt-auth.guard';
 import { AuthGuard } from '@nestjs/passport';
 import { ConfigService } from '@nestjs/config';
 import { Request, Response } from 'express';
@@ -60,10 +61,11 @@ export class AuthController {
   }
 
   @Post('logout')
-  @HttpCode(HttpStatus.OK)
-  async logout(@Body() dto: RefreshDto) {
-    await this.logoutUseCase.execute(dto);
-    return { message: '로그아웃되었습니다.' };
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async logout(@Req() req: Request, @Body() body: Partial<RefreshDto>): Promise<void> {
+    const accessToken = (req.headers as any).authorization.slice(7);
+    await this.logoutUseCase.execute(accessToken, body.refreshToken);
   }
 
   // ---- Google OAuth ----
