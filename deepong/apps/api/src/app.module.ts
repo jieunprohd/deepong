@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { join } from 'path';
 import { DatabaseModule } from './shared/database/database.module';
+import { RedisModule } from './shared/redis/redis.module';
 import { EventBusModule } from './shared/event-bus/event-bus.module';
 import { IdentityModule } from './modules/identity/identity.module';
 import { RelationshipModule } from './modules/relationship/relationship.module';
@@ -17,6 +18,7 @@ import { WorkspaceModule } from './modules/workspace/workspace.module';
       envFilePath: join(__dirname, '..', '.env'),
     }),
     DatabaseModule,
+    RedisModule,
     EventBusModule,
     IdentityModule,
     RelationshipModule,
