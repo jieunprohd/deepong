@@ -5,6 +5,7 @@ import { AttentionModule } from '@modules/attention/attention.module';
 import { FeedAction } from './domain/feed-action.entity';
 import { ListCatchupFeedUseCase } from './application/list-catchup-feed.usecase';
 import { RecordFeedActionUseCase } from './application/record-feed-action.usecase';
+import { CommunicationAcl } from './infrastructure/acl/communication.acl';
 import { CatchupController } from './interface/catchup.controller';
 
 @Module({
@@ -14,6 +15,6 @@ import { CatchupController } from './interface/catchup.controller';
     AttentionModule,
   ],
   controllers: [CatchupController],
-  providers: [ListCatchupFeedUseCase, RecordFeedActionUseCase],
+  providers: [ListCatchupFeedUseCase, RecordFeedActionUseCase, CommunicationAcl],
 })
 export class CatchupModule {}
