@@ -23,7 +23,7 @@ export class User extends AggregateRoot {
     @Column({type: 'varchar', length: 200, nullable: true})
     bio!: string | null;
 
-    @Column({type: 'varchar', length: 500, nullable: true})
+    @Column({type: 'text', nullable: true})
     avatarUrl!: string | null;
 
     @Column({type: 'varchar', length: 50, default: 'Asia/Seoul'})
