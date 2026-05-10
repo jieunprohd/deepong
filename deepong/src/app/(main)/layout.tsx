@@ -167,6 +167,7 @@ export default function MainLayout({
             <div className="relative">
               <Avatar
                 name={user?.nickname || "O"}
+                profile={user?.avatarUrl ?? undefined}
                 size="lg"
                 presence={presence}
                 color="blue"

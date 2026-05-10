@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Camera } from "lucide-react";
 import { Avatar } from "@/app/_components/Avatar";
 import { Button } from "@/app/_components/Button";
 import { Input } from "@/app/_components/Input";
@@ -60,6 +61,32 @@ function diffPatch(initial: ProfileDto, form: FormState): UpdateProfileRequest {
   return patch;
 }
 
+function resizeImageFile(file: File, maxSize = 256): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new window.Image();
+      img.onload = () => {
+        const scale = Math.min(maxSize / img.width, maxSize / img.height, 1);
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          reject(new Error("canvas not supported"));
+          return;
+        }
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL("image/jpeg", 0.85));
+      };
+      img.onerror = reject;
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 export const ProfileSection: React.FC<ProfileSectionProps> = ({
   initialProfile,
   onSaved,
@@ -68,6 +95,7 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
   const [errors, setErrors] = useState<FieldErrors>({});
   const [isSaving, setIsSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<number | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!savedAt) return;
@@ -93,6 +121,23 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
     setErrors(next);
     return Object.keys(next).length === 0;
   };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const base64 = await resizeImageFile(file);
+      setForm((s) => ({ ...s, avatarUrl: base64 }));
+    } catch {
+      setErrors((prev) => ({
+        ...prev,
+        general: "이미지를 불러오지 못했어요.",
+      }));
+    }
+    e.target.value = "";
+  };
+
+  const isLocalFile = form.avatarUrl.startsWith("data:");
 
   const handleSave = async () => {
     if (!validate() || !isDirty) return;
@@ -139,12 +184,28 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
       </header>
 
       <div className="flex items-center gap-4 pb-5 border-b border-[var(--gray-100)]">
-        <Avatar
-          name={initialProfile.nickname}
-          color="blue"
-          size="2xl"
-          profile={form.avatarUrl || undefined}
-          hover={false}
+        <div
+          className="relative group cursor-pointer shrink-0"
+          onClick={() => fileInputRef.current?.click()}
+          title="프로필 사진 변경"
+        >
+          <Avatar
+            name={initialProfile.nickname}
+            color="blue"
+            size="2xl"
+            profile={form.avatarUrl || undefined}
+            hover={false}
+          />
+          <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+            <Camera size={22} className="text-white" />
+          </div>
+        </div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleFileChange}
         />
         <div className="flex flex-col gap-0.5">
           <p className="text-[15px] font-semibold text-[var(--gray-900)]">
@@ -190,12 +251,16 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
 
         <Input
           label="아바타 이미지 URL"
-          value={form.avatarUrl}
+          value={isLocalFile ? "" : form.avatarUrl}
           onChange={(e) =>
             setForm((s) => ({ ...s, avatarUrl: e.target.value }))
           }
-          placeholder="https://..."
-          help="비워두면 기본 아바타가 표시돼요."
+          placeholder={isLocalFile ? "로컬 파일이 선택되었어요" : "https://..."}
+          help={
+            isLocalFile
+              ? "위 프로필 사진을 클릭하면 다른 파일로 바꿀 수 있어요."
+              : "비워두면 기본 아바타가 표시돼요."
+          }
         />
 
         <Select
