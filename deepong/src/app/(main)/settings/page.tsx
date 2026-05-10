@@ -11,6 +11,7 @@ import {
   SettingsApiError,
   WorkspaceDto,
 } from "@/features/settings/types";
+import { LogOut } from "lucide-react";
 
 type LoadState =
   | { type: "loading" }
@@ -18,7 +19,7 @@ type LoadState =
   | { type: "error"; message: string };
 
 export default function SettingsPage() {
-  const { setUser, setWorkspace } = useAuth();
+  const { setUser, setWorkspace, logout } = useAuth();
   const [state, setState] = useState<LoadState>({ type: "loading" });
 
   const load = async () => {
@@ -98,6 +99,22 @@ export default function SettingsPage() {
               );
             }}
           />
+
+          <div className="rounded-2xl border border-[#e5e8eb] bg-white px-6 py-5">
+            <h2 className="mb-1 text-[15px] font-semibold text-[#191f28]">
+              계정
+            </h2>
+            <p className="mb-4 text-[13px] text-[#8b95a1]">
+              로그아웃하면 이 기기에서 로그인 상태가 해제됩니다.
+            </p>
+            <button
+              onClick={logout}
+              className="flex items-center gap-2 rounded-lg border border-[#f04452] px-4 py-2 text-[13px] font-medium text-[#f04452] transition-colors hover:bg-[#fff0f1]"
+            >
+              <LogOut size={15} strokeWidth={2} />
+              로그아웃
+            </button>
+          </div>
         </div>
       </div>
     </div>
