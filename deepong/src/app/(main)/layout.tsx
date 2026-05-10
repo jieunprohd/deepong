@@ -21,10 +21,7 @@ import {
   NotificationCenter,
   NotificationItem,
 } from "@/features/attention/NotificationCenter";
-import {
-  PresenceSelector,
-  Presence,
-} from "@/features/attention/PresenceSelector";
+import { Presence } from "@/features/attention/PresenceSelector";
 
 export default function MainLayout({
   children,
@@ -46,9 +43,7 @@ export default function MainLayout({
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   // 프레즌스 (사이드바 하단 아바타)
-  const [presence, setPresence] = useState<Presence>("focus");
-  const [statusMessage, setStatusMessage] =
-    useState<string>("집중 중 — 오후 4:00까지");
+  const [presence] = useState<Presence>("focus");
 
   const {
     width: chatListWidth,
@@ -164,25 +159,14 @@ export default function MainLayout({
             >
               <Settings size={22} strokeWidth={1.8} />
             </button>
-            <div className="relative">
-              <Avatar
-                name={user?.nickname || "O"}
-                profile={user?.avatarUrl ?? undefined}
-                size="lg"
-                presence={presence}
-                color="blue"
-                hover={false}
-              />
-              <div className="absolute -right-1 -bottom-1">
-                <PresenceSelector
-                  compact
-                  value={presence}
-                  onChange={setPresence}
-                  statusMessage={statusMessage}
-                  onStatusMessageChange={setStatusMessage}
-                />
-              </div>
-            </div>
+            <Avatar
+              name={user?.nickname || "O"}
+              profile={user?.avatarUrl ?? undefined}
+              size="lg"
+              presence={presence}
+              color="blue"
+              hover={false}
+            />
           </div>
         </aside>
 
