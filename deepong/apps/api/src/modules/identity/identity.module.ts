@@ -14,6 +14,7 @@ import { RefreshUseCase } from './application/refresh.usecase';
 import { LogoutUseCase } from './application/logout.usecase';
 import { OAuthLoginUseCase } from './application/oauth-login.usecase';
 import { GetMeUseCase } from './application/get-me.usecase';
+import { UpdateProfileUseCase } from './application/update-profile.usecase';
 import { AuthController } from './interface/auth.controller';
 import { MeController } from './interface/me.controller';
 
@@ -34,7 +35,8 @@ import { MeController } from './interface/me.controller';
     LogoutUseCase,
     OAuthLoginUseCase,
     GetMeUseCase,
+    UpdateProfileUseCase,
   ],
   exports: [TokenService, JwtAuthGuard],
 })
-export class IdentityModule {}
+export class IdentityModule { }
