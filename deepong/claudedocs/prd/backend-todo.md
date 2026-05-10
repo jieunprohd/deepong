@@ -70,7 +70,15 @@ senderNickname: null,  // TODO: USER nickname join
 
 ## 남은 구현 체크리스트
 
-### Communication 모듈 (팀 B)
+### P0 — Redis 모듈 (공통 인프라, 모든 것이 여기에 블록됨)
+
+- [ ] **Redis 모듈** — `shared/redis/redis.module.ts` + `REDIS_CLIENT` provider
+- [ ] `packages/shared-types` — 도메인 이벤트 Zod 스키마 (`MessageSent`, `RoomCreated`, `FriendshipEstablished` 등)
+- [ ] TypeORM 마이그레이션 파일 정리 (현재 synchronize 의존 — 프로덕션 전 migration:run 전환 필요)
+
+---
+
+### P1 — Communication 모듈 핵심 도메인 (팀 B)
 
 #### 도메인
 
@@ -80,11 +88,12 @@ senderNickname: null,  // TODO: USER nickname join
 
 #### 인프라
 
-- [ ] **Redis 모듈** — `shared/redis/redis.module.ts` + `REDIS_CLIENT` provider
 - [ ] `RoomSequenceGenerator` — Redis `INCR room:seq:{ROOM_ID}`
 - [ ] `RelationshipAcl` — `POST /rooms` 시 친구 여부 검증 (Relationship 컨텍스트 직접 import 금지, ACL 경유)
 
-#### Use Cases (Application)
+---
+
+### P2 — Communication Use Cases + Interface (팀 B)
 
 - [ ] `CreateRoomUseCase` — upsert 로직 (DIRECT 방 중복 방지), `RoomCreated` 이벤트 + `gateway.emitRoomCreated()`
 - [ ] `GetRoomsUseCase` — cursor 페이지네이션, `LAST_MESSAGE_AT DESC`, 마지막 메시지 포함
@@ -93,17 +102,13 @@ senderNickname: null,  // TODO: USER nickname join
 - [ ] `GetMessagesUseCase` — `beforeSeq` cursor, `SEQ DESC`
 - [ ] `EditMessageUseCase` — 낙관적 동시성(`VERSION`) + `gateway.emitMessageUpdated()`
 - [ ] `DeleteMessageUseCase` — soft delete + `gateway.emitMessageDeleted()`
-
-#### Interface
-
 - [ ] `RoomController` — `POST /rooms`, `GET /rooms`, `GET /rooms/:id`
 - [ ] `MessageController` — `POST /rooms/:id/messages`, `GET /rooms/:id/messages`, `PATCH /rooms/:id/messages/:messageId`, `DELETE /rooms/:id/messages/:messageId`
 
 ---
 
-### Identity 모듈 (팀 A)
+### P3 — Identity 보완 (팀 A, Redis 모듈 완료 후 가능)
 
-- [ ] **Redis 모듈 연결** (위 Communication과 공유)
 - [ ] `LogoutUseCase` — Access Token Redis 블랙리스트 추가 (`session:blacklist:{jti}`, TTL 15분)
 - [ ] `JwtAuthGuard` — Redis 블랙리스트 확인 로직 추가
 - [ ] `UpdateProfileUseCase` + `PATCH /me` 엔드포인트 (nickname, bio, avatarUrl, timezone)
@@ -111,29 +116,22 @@ senderNickname: null,  // TODO: USER nickname join
 
 ---
 
-### Relationship 모듈 (팀 A)
+### P4 — Relationship 보완 (팀 A)
 
 - [ ] `DeleteFriendshipUseCase` — `NOT_FRIENDSHIP_PARTY` 검증 추가
 - [ ] `DeleteFriendshipUseCase` — 양방향 `COMMUNICATION_NORM` 삭제 (soft delete or hard)
-- [ ] `AcceptInvitationUseCase` — `FriendshipEstablished` 이벤트 수신 후 `gateway.emitFriendshipEstablished()` 호출 (이벤트 핸들러 or Communication ACL)
+- [ ] `AcceptInvitationUseCase` — `FriendshipEstablished` 이벤트 수신 후 `gateway.emitFriendshipEstablished()` 호출
 - [ ] `DeleteFriendshipUseCase` — `gateway.emitFriendshipRemoved()` 호출
 
 ---
 
-### Catchup 모듈 (팀 C)
+### P5 — 연결 및 마무리
 
 - [ ] `ListCatchupFeedUseCase` — `senderUserId`, `senderNickname` Communication ACL 경유 채우기 (Message 엔티티 구현 후)
 
 ---
 
-### 공통 인프라
-
-- [ ] `packages/shared-types` — 도메인 이벤트 Zod 스키마 (`MessageSent`, `RoomCreated`, `FriendshipEstablished` 등)
-- [ ] TypeORM 마이그레이션 파일 정리 (현재 synchronize 의존 — 프로덕션 전 migration:run 전환 필요)
-
----
-
-### 테스트
+### P6 — 테스트 (전체 구현 완료 후)
 
 - [ ] `SendMessageUseCase` — `CLIENT_MESSAGE_ID` 멱등성 테스트
 - [ ] `SendMessageUseCase` — SEQ 동시성 테스트
@@ -143,15 +141,14 @@ senderNickname: null,  // TODO: USER nickname join
 
 ---
 
-## 우선순위 제안
+## 우선순위 요약
 
 ```
-1. Redis 모듈 세팅       ← 블랙리스트·SEQ 모두 의존
-2. Message 엔티티        ← SendMessageUseCase 선행 조건
-3. Room Use Cases + Controller
-4. Message Use Cases + Controller
-5. logout 블랙리스트 + PATCH /me
-6. DELETE /friendships 보완
-7. Catchup sender 정보 연결
-8. 통합 테스트
+P0  Redis 모듈          ← 🔴 블로킹 이슈. SEQ·블랙리스트·Presence·쿼터 전부 의존
+P1  Message + Room 도메인 ← SendMessageUseCase 선행 조건. Catchup도 여기 의존
+P2  Room + Message UseCase/Controller ← Communication 핵심 기능
+P3  Identity 보완       ← Redis 완료 후 즉시 가능 (logout 블랙리스트, PATCH /me)
+P4  Relationship 보완   ← DELETE /friendships 검증 + NORM 삭제
+P5  Catchup sender 연결 ← Message 엔티티 완성 후
+P6  통합 테스트         ← 모든 구현 완료 후
 ```
