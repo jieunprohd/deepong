@@ -21,6 +21,7 @@ import {
   CommunicationNorm,
 } from "@/features/relationship/CommunicationNormModal";
 import { DEFAULT_NORM, MOCK_NORMS } from "../_mock";
+import { useSearch } from "@/hooks/useSearch";
 import { UserPlus, Search, X, Bell, Star, Ban } from "lucide-react";
 
 export default function FriendsPage() {
@@ -31,8 +32,15 @@ export default function FriendsPage() {
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [error, setError] = useState(false);
 
-  // Search state
-  const [searchQuery, setSearchQuery] = useState("");
+  // 친구 목록 실시간 필터링
+  const { query: searchQuery, setQuery: setSearchQuery, filteredItems } = useSearch<FriendItem>({
+    items: friends,
+    filterFn: (friend, q) =>
+      friend.peer.nickname.toLowerCase().includes(q) ||
+      friend.peer.handle.toLowerCase().includes(q),
+  });
+
+  // 핸들 검색 (새 친구 찾기)
   const [searchResult, setSearchResult] = useState<SearchUserResponse | null>(
     null,
   );
@@ -184,7 +192,9 @@ export default function FriendsPage() {
               친구
             </h1>
             <p className="mt-0.5 text-[13px] text-[#6b7684]">
-              {friends.length}명의 친구
+              {searchQuery.trim()
+                ? `${filteredItems.length} / ${friends.length}명`
+                : `${friends.length}명의 친구`}
             </p>
           </div>
           <Button
@@ -270,8 +280,16 @@ export default function FriendsPage() {
 
       {/* Friends List */}
       <div className="flex-1 overflow-y-auto px-6 py-4">
+        {filteredItems.length === 0 && searchQuery.trim() && (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <p className="text-[14px] font-semibold text-[#191f28]">검색 결과가 없어요</p>
+            <p className="mt-1 text-[13px] text-[#8b95a1]">
+              &ldquo;{searchQuery}&rdquo; 와 일치하는 친구가 없습니다.
+            </p>
+          </div>
+        )}
         <div className="flex flex-col gap-1">
-          {friends.map((friend) => {
+          {filteredItems.map((friend) => {
             const norm = getNormFor(friend.id);
             return (
               <div key={friend.id} className="group relative">
