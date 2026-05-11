@@ -28,6 +28,7 @@ import {
   PresenceSelector,
   Presence,
 } from "@/features/attention/PresenceSelector";
+import { CreateRoomModal } from "@/features/communication/CreateRoomModal";
 
 function MainLayoutInner({ children }: { children: React.ReactNode }) {
   const { user, isLoading, isAuthenticated } = useAuth();
@@ -39,6 +40,7 @@ function MainLayoutInner({ children }: { children: React.ReactNode }) {
     : null;
 
   const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const [isCreateRoomOpen, setIsCreateRoomOpen] = useState(false);
   const [notifications, setNotifications] =
     useState<NotificationItem[]>(MOCK_NOTIFICATIONS);
   const unreadCount = notifications.filter((n) => !n.isRead).length;
@@ -180,8 +182,8 @@ function MainLayoutInner({ children }: { children: React.ReactNode }) {
                 대화
               </h2>
               <button
-                onClick={() => router.push("/friends")}
-                title="새 대화 시작 (친구 목록에서)"
+                onClick={() => setIsCreateRoomOpen(true)}
+                title="새 대화 시작"
                 className="flex h-8 w-8 items-center justify-center rounded-lg text-[#8b95a1] hover:bg-[#f2f4f6] hover:text-[#2f6bff] transition-colors"
               >
                 <Plus size={18} strokeWidth={2} />
@@ -286,6 +288,10 @@ function MainLayoutInner({ children }: { children: React.ReactNode }) {
             />
           </aside>
         </>
+      )}
+
+      {isCreateRoomOpen && (
+        <CreateRoomModal isOpen onClose={() => setIsCreateRoomOpen(false)} />
       )}
     </div>
   );
