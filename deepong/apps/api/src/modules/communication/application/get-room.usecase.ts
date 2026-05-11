@@ -1,10 +1,14 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { DataSource } from 'typeorm';
-import { RoomView } from './dto/room.dto';
+import { RoomMemberHydrator } from '../infrastructure/room-member.hydrator';
+import { RoomLastMessageView, RoomView } from './dto/room.dto';
 
 @Injectable()
 export class GetRoomUseCase {
-  constructor(private readonly dataSource: DataSource) {}
+  constructor(
+    private readonly dataSource: DataSource,
+    private readonly memberHydrator: RoomMemberHydrator,
+  ) {}
 
   async execute(userId: number, roomId: number): Promise<RoomView> {
     const rooms = await this.dataSource.query(
@@ -15,30 +19,41 @@ export class GetRoomUseCase {
     );
     if (!rooms.length) throw new NotFoundException('방을 찾을 수 없습니다.');
 
-    const members = await this.dataSource.query(
-      `SELECT m.USER_ID, u.NICKNAME, u.AVATAR_URL
-       FROM ROOM_MEMBER m
-       INNER JOIN USER u ON u.ID = m.USER_ID
-       WHERE m.ROOM_ID = ? AND m.LEFT_AT IS NULL`,
-      [roomId],
-    );
+    const membersByRoom = await this.memberHydrator.hydrateByRoomIds([roomId]);
+    const members = membersByRoom.get(roomId) ?? [];
 
-    const isMember = members.some((m: any) => Number(m.USER_ID) === userId);
+    const isMember = members.some((m) => Number(m.userId) === userId);
     if (!isMember) throw new ForbiddenException('방 멤버가 아닙니다.');
 
     const r = rooms[0];
+    const lastMessage = await this.fetchLastMessage(roomId);
     return {
       id: String(r.ID),
       type: r.TYPE,
       name: r.NAME,
       defaultTone: r.DEFAULT_TONE,
-      members: members.map((m: any) => ({
-        userId: String(m.USER_ID),
-        nickname: m.NICKNAME,
-        avatarUrl: m.AVATAR_URL ?? null,
-      })),
+      members,
+      lastMessage,
       lastMessageAt: r.LAST_MESSAGE_AT ? new Date(r.LAST_MESSAGE_AT).toISOString() : null,
       createdAt: new Date(r.CREATED_AT).toISOString(),
+    };
+  }
+
+  private async fetchLastMessage(roomId: number): Promise<RoomLastMessageView | null> {
+    const rows = await this.dataSource.query(
+      `SELECT CONTENT, TONE, SENDER_USER_ID, CREATED_AT
+       FROM MESSAGE
+       WHERE ROOM_ID = ? AND DELETED_AT IS NULL
+       ORDER BY SEQ DESC LIMIT 1`,
+      [roomId],
+    );
+    if (!rows.length) return null;
+    const m = rows[0];
+    return {
+      content: m.CONTENT,
+      tone: m.TONE,
+      senderUserId: String(m.SENDER_USER_ID),
+      createdAt: new Date(m.CREATED_AT).toISOString(),
     };
   }
 }

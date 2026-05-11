@@ -9,6 +9,7 @@ import { RoomController } from './interface/room.controller';
 import { MessageController } from './interface/message.controller';
 import { RoomSequenceGenerator } from './infrastructure/room-sequence-generator';
 import { RelationshipAcl } from './infrastructure/acl/relationship.acl';
+import { RoomMemberHydrator } from './infrastructure/room-member.hydrator';
 import { CreateRoomUseCase } from './application/create-room.usecase';
 import { GetRoomsUseCase } from './application/get-rooms.usecase';
 import { GetRoomUseCase } from './application/get-room.usecase';
@@ -28,6 +29,7 @@ import { FriendshipEventHandler } from './application/friendship-event.handler';
     MessageGateway,
     RoomSequenceGenerator,
     RelationshipAcl,
+    RoomMemberHydrator,
     CreateRoomUseCase,
     GetRoomsUseCase,
     GetRoomUseCase,
