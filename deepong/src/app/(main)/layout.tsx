@@ -5,7 +5,12 @@ import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import { SocketProvider } from "@/lib/socket";
 import { ChatProvider, useChat, type RoomDto } from "@/lib/chat";
-import { MOCK_NOTIFICATIONS } from "./_mock";
+import {
+  fetchNotifications,
+  markAllNotificationsRead,
+  markNotificationRead,
+  type NotificationResponse,
+} from "@/features/attention/api";
 import {
   Home,
   MessageSquare,
@@ -41,8 +46,7 @@ function MainLayoutInner({ children }: { children: React.ReactNode }) {
 
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [isCreateRoomOpen, setIsCreateRoomOpen] = useState(false);
-  const [notifications, setNotifications] =
-    useState<NotificationItem[]>(MOCK_NOTIFICATIONS);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const unreadCount = notifications.filter((n) => !n.isRead).length;
   const [presence, setPresence] = useState<Presence>("focus");
   const [statusMessage, setStatusMessage] =
@@ -76,16 +80,37 @@ function MainLayoutInner({ children }: { children: React.ReactNode }) {
     if (!isLoading && !isAuthenticated) router.replace("/auth");
   }, [isLoading, isAuthenticated, router]);
 
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    let cancelled = false;
+    fetchNotifications({ limit: 30 })
+      .then((res) => {
+        if (cancelled) return;
+        setNotifications(res.items.map(mapNotification));
+      })
+      .catch(() => {
+        /* 알림 로드 실패 시 빈 상태 유지 */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated]);
+
   const handleNotifSelect = (id: string) => {
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)),
     );
     setIsNotifOpen(false);
+    markNotificationRead(Number(id)).catch(() => {
+      /* 서버 실패해도 UI 낙관 업데이트 유지 */
+    });
   };
   const handleNotifDismiss = (id: string) =>
     setNotifications((prev) => prev.filter((n) => n.id !== id));
-  const handleMarkAllRead = () =>
+  const handleMarkAllRead = () => {
     setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+    markAllNotificationsRead().catch(() => {});
+  };
 
   if (isLoading || !isAuthenticated) {
     return (
@@ -306,6 +331,26 @@ function getRoomDisplayName(room: RoomDto, myUserId?: string): string {
     return peer?.nickname ?? "대화방";
   }
   return room.members.map((m) => m.nickname).join(", ");
+}
+
+function mapNotification(n: NotificationResponse): NotificationItem {
+  const tone = n.triggerTone.toLowerCase() as NotificationItem["tone"];
+  const delivery: NotificationItem["delivery"] =
+    n.deliveryMethod === "IMMEDIATE_QUIET"
+      ? "quiet"
+      : n.deliveryMethod === "DROPPED"
+        ? "queued"
+        : (n.deliveryMethod.toLowerCase() as NotificationItem["delivery"]);
+  return {
+    id: String(n.id),
+    sender: { name: n.senderNickname ?? "알 수 없음" },
+    roomName: n.roomName ?? n.senderNickname ?? undefined,
+    preview: n.content ?? "",
+    tone,
+    delivery,
+    time: formatRelativeTime(n.createdAt),
+    isRead: n.deliveryStatus !== "PENDING",
+  };
 }
 
 function formatRelativeTime(isoString: string): string {
