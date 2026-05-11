@@ -1,30 +1,80 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
-import {
-  MOCK_CATCHUP,
-  MOCK_LINKS,
-  MOCK_REMINDERS,
-  MockReminder,
-} from "./_mock";
+import { MOCK_LINKS, MOCK_REMINDERS, MockReminder } from "./_mock";
 import Chip from "../_components/Chip";
 import EmptyState from "../_components/EmptyState";
 import { Card } from "../_components/Card";
 import { CreateInvitationModal } from "@/features/invitation/CreateInvitationModal";
-import { CatchupList } from "@/features/catchup/CatchupList";
+import {
+  CatchupList,
+  type CatchupItem,
+  type CatchupItemType,
+} from "@/features/catchup/CatchupList";
 import { DigestSection } from "@/features/catchup/DigestSection";
 import { ReminderCard } from "@/features/catchup/ReminderCard";
+import {
+  fetchCatchupFeed,
+  recordCatchupAction,
+  type CatchupFeedItem,
+} from "@/features/catchup/api";
 import { Bell, Link as LinkIcon } from "lucide-react";
+
+function mapCatchupItem(f: CatchupFeedItem): CatchupItem {
+  const type = f.tone.toLowerCase() as CatchupItemType;
+  return {
+    id: String(f.notificationId),
+    type,
+    author: { name: f.senderNickname ?? "알 수 없음" },
+    time: formatRelative(f.createdAt),
+    messages: f.content ? [{ text: f.content, tone: type }] : [],
+    primaryActionLabel: "대화 열기",
+    secondaryActionLabel: type === "ask" ? "읽음 처리" : undefined,
+  };
+}
+
+function formatRelative(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const minutes = Math.floor(diff / 60000);
+  if (minutes < 1) return "방금";
+  if (minutes < 60) return `${minutes}분 전`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}시간 전`;
+  const days = Math.floor(hours / 24);
+  if (days === 1) return "어제";
+  return `${days}일 전`;
+}
 
 export default function HomePage() {
   const { user } = useAuth();
   const router = useRouter();
   const [isInviteOpen, setIsInviteOpen] = useState(false);
   const [reminders, setReminders] = useState<MockReminder[]>(MOCK_REMINDERS);
+  const [feed, setFeed] = useState<CatchupFeedItem[]>([]);
+  const [feedLoaded, setFeedLoaded] = useState(false);
 
-  const hasConversations = MOCK_CATCHUP.length > 0;
+  useEffect(() => {
+    let cancelled = false;
+    fetchCatchupFeed({ limit: 30 })
+      .then((res) => {
+        if (cancelled) return;
+        setFeed(res.items);
+      })
+      .catch(() => {
+        /* 빈 상태 유지 */
+      })
+      .finally(() => {
+        if (!cancelled) setFeedLoaded(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const catchupItems = useMemo(() => feed.map(mapCatchupItem), [feed]);
+  const hasConversations = !feedLoaded || catchupItems.length > 0;
 
   if (!hasConversations) {
     return (
@@ -49,30 +99,29 @@ export default function HomePage() {
     );
   }
 
-  const askItems = MOCK_CATCHUP.filter(
+  const askItems = catchupItems.filter(
     (c) => c.type === "ask" || c.type === "urgent",
   );
-  const chatItems = MOCK_CATCHUP.filter((c) => c.type === "chat");
-  const shareItems = MOCK_CATCHUP.filter((c) => c.type === "share");
+  const chatItems = catchupItems.filter((c) => c.type === "chat");
+  const shareItems = catchupItems.filter((c) => c.type === "share");
 
   const activeReminders = reminders.filter((r) => !r.isCompleted);
   const completedReminders = reminders.filter((r) => r.isCompleted);
 
   const handlePrimaryAction = (id: string) => {
-    const item = MOCK_CATCHUP.find((c) => c.id === id);
+    const item = feed.find((f) => String(f.notificationId) === id);
+    if (!item?.roomId) return;
+    recordCatchupAction(item.messageId, "OPEN_CHAT").catch(() => {});
+    router.push(`/chat/${item.roomId}`);
+  };
+
+  const handleSecondaryAction = (id: string) => {
+    const item = feed.find((f) => String(f.notificationId) === id);
     if (!item) return;
-    // meta에서 그룹방 표시 확인 (간단한 mock 매핑)
-    const chatId =
-      item.author.name === "민수"
-        ? "1"
-        : item.author.name === "지은"
-          ? "2"
-          : item.author.name === "서연"
-            ? "3"
-            : item.author.name === "준호"
-              ? "4"
-              : "1";
-    router.push(`/chat/${chatId}`);
+    recordCatchupAction(item.messageId, "MARK_READ").catch(() => {});
+    setFeed((prev) =>
+      prev.filter((f) => f.notificationId !== item.notificationId),
+    );
   };
 
   const handleReminderComplete = (id: string) => {
@@ -192,7 +241,7 @@ export default function HomePage() {
               <CatchupList
                 items={askItems}
                 onPrimaryAction={handlePrimaryAction}
-                onSecondaryAction={() => {}}
+                onSecondaryAction={handleSecondaryAction}
               />
             </DigestSection>
           )}
@@ -208,7 +257,7 @@ export default function HomePage() {
               <CatchupList
                 items={chatItems}
                 onPrimaryAction={handlePrimaryAction}
-                onSecondaryAction={() => {}}
+                onSecondaryAction={handleSecondaryAction}
               />
             </DigestSection>
           )}
@@ -226,7 +275,7 @@ export default function HomePage() {
                 <CatchupList
                   items={shareItems}
                   onPrimaryAction={handlePrimaryAction}
-                  onSecondaryAction={() => {}}
+                  onSecondaryAction={handleSecondaryAction}
                 />
               )}
               <Card
