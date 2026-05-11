@@ -24,8 +24,7 @@ export interface EvaluateNotificationCommand {
 /**
  * 메시지 1건에 대한 알림 정책 평가 + Notification 생성.
  *
- *  Communication.MessageSent 이벤트 핸들러가 이 UseCase를 호출하여 사용한다.
- *  (현재 Communication 컨텍스트는 미구현이므로 외부에서 직접 호출 가능 형태로 노출)
+ * MessageSentHandler가 Communication.MessageSent 이벤트를 받아 이 UseCase를 호출한다.
  */
 @Injectable()
 export class EvaluateNotificationUseCase {

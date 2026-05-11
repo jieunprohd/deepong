@@ -17,11 +17,13 @@ import {
   UpdateNotificationPreferenceUseCase,
 } from './application/notification-preference.usecase';
 import { EvaluateNotificationUseCase } from './application/evaluate-notification.usecase';
+import { MessageSentHandler } from './application/message-sent.handler';
 import { PresenceController } from './interface/presence.controller';
 import { FocusController } from './interface/focus.controller';
 import { NotificationController } from './interface/notification.controller';
 import { NotificationPreferenceController } from './interface/notification-preference.controller';
 import { CommunicationAcl } from './infrastructure/acl/communication.acl';
+import { RelationshipAcl } from './infrastructure/acl/relationship.acl';
 
 @Module({
   imports: [
@@ -51,6 +53,8 @@ import { CommunicationAcl } from './infrastructure/acl/communication.acl';
     UpdateNotificationPreferenceUseCase,
     EvaluateNotificationUseCase,
     CommunicationAcl,
+    RelationshipAcl,
+    MessageSentHandler,
   ],
   exports: [EvaluateNotificationUseCase],
 })

@@ -16,6 +16,24 @@ export interface NotificationMessageDigest {
 export class CommunicationAcl {
   constructor(private readonly dataSource: DataSource) {}
 
+  /**
+   * 방의 활성 멤버 목록을 반환 (LEFT_AT IS NULL).
+   * excludeUserId가 주어지면 해당 사용자(주로 발신자)는 결과에서 제외한다.
+   */
+  async getRoomMemberIds(
+    roomId: number,
+    excludeUserId?: number,
+  ): Promise<number[]> {
+    const rows: Array<{ USER_ID: number | string }> =
+      await this.dataSource.query(
+        `SELECT USER_ID FROM ROOM_MEMBER WHERE ROOM_ID = ? AND LEFT_AT IS NULL`,
+        [roomId],
+      );
+    return rows
+      .map((r) => Number(r.USER_ID))
+      .filter((id) => id !== excludeUserId);
+  }
+
   async getDigestsByMessageIds(
     messageIds: number[],
   ): Promise<Map<number, NotificationMessageDigest>> {

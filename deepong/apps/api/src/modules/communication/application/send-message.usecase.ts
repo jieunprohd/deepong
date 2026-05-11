@@ -1,5 +1,6 @@
 import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { DataSource } from 'typeorm';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Message } from '../domain/message/message.entity';
 import { Tone } from '../domain/message/tone.vo';
 import { MessageContent } from '../domain/message/content.vo';
@@ -13,6 +14,7 @@ export class SendMessageUseCase {
     private readonly dataSource: DataSource,
     private readonly seqGenerator: RoomSequenceGenerator,
     private readonly gateway: MessageGateway,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async execute(senderUserId: number, roomId: number, dto: SendMessageDto): Promise<MessageView> {
@@ -39,6 +41,10 @@ export class SendMessageUseCase {
       `UPDATE ROOM SET LAST_MESSAGE_AT = ? WHERE ID = ?`,
       [msg.createdAt, roomId],
     );
+
+    for (const event of msg.pullDomainEvents()) {
+      this.eventEmitter.emit(event.eventName, event);
+    }
 
     const view = this.toView(msg);
     this.gateway.emitMessageNew(roomId, view);
