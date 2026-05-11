@@ -32,8 +32,22 @@ export interface RoomCreatedPayload {
   name: string | null;
   defaultTone: string;
   members: Array<{ userId: string; nickname: string; avatarUrl: string | null }>;
+  lastMessage: {
+    content: string;
+    tone: string;
+    senderUserId: string;
+    createdAt: string;
+  } | null;
   lastMessageAt: string | null;
   createdAt: string;
+}
+
+/** room:updated 페이로드 — 이름·멤버 변경 broadcast (RoomView 전체) */
+export type RoomUpdatedPayload = RoomCreatedPayload;
+
+/** room:left 페이로드 — 본인이 방을 나갔다 */
+export interface RoomLeftPayload {
+  roomId: string;
 }
 
 /** friendship:established 페이로드 — 스펙 3.3 응답 스키마 */

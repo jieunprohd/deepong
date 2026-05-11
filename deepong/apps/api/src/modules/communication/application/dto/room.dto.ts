@@ -1,4 +1,4 @@
-import { IsArray, IsEnum, IsOptional, IsString, IsNumber } from 'class-validator';
+import { ArrayMinSize, IsArray, IsEnum, IsOptional, IsString, IsNumber, MaxLength } from 'class-validator';
 import { ToneType } from '../../domain/message/tone.vo';
 import { RoomType } from '../../domain/room/room.entity';
 
@@ -17,6 +17,20 @@ export class CreateRoomDto {
   @IsOptional()
   @IsEnum(['CHAT', 'ASK', 'URGENT', 'SHARE'])
   defaultTone?: ToneType;
+}
+
+export class UpdateRoomDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  name?: string;
+}
+
+export class AddRoomMembersDto {
+  @IsArray()
+  @ArrayMinSize(1)
+  @IsNumber({}, { each: true })
+  memberUserIds!: number[];
 }
 
 export class GetRoomsQueryDto {

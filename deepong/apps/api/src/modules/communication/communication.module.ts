@@ -13,6 +13,9 @@ import { RoomMemberHydrator } from './infrastructure/room-member.hydrator';
 import { CreateRoomUseCase } from './application/create-room.usecase';
 import { GetRoomsUseCase } from './application/get-rooms.usecase';
 import { GetRoomUseCase } from './application/get-room.usecase';
+import { UpdateRoomUseCase } from './application/update-room.usecase';
+import { LeaveRoomUseCase } from './application/leave-room.usecase';
+import { AddRoomMembersUseCase } from './application/add-room-members.usecase';
 import { SendMessageUseCase } from './application/send-message.usecase';
 import { GetMessagesUseCase } from './application/get-messages.usecase';
 import { EditMessageUseCase } from './application/edit-message.usecase';
@@ -33,6 +36,9 @@ import { FriendshipEventHandler } from './application/friendship-event.handler';
     CreateRoomUseCase,
     GetRoomsUseCase,
     GetRoomUseCase,
+    UpdateRoomUseCase,
+    LeaveRoomUseCase,
+    AddRoomMembersUseCase,
     SendMessageUseCase,
     GetMessagesUseCase,
     EditMessageUseCase,
