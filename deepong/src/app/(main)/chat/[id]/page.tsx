@@ -363,7 +363,7 @@ export default function ChatDetailPage() {
                           )}
                           {highlightText(msg.content, searchQuery, msg.id)}
                           {isMine && (
-                            <div className="absolute -left-16 top-1/2 hidden -translate-y-1/2 items-center gap-1 group-hover:flex">
+                            <div className="absolute right-full top-1/2 hidden -translate-y-1/2 items-center gap-1 pr-2 group-hover:flex">
                               <button
                                 onClick={() => startEdit(msg)}
                                 className="flex h-7 w-7 items-center justify-center rounded-lg bg-white text-[#6b7684] shadow-sm hover:bg-[#f2f4f6]"
