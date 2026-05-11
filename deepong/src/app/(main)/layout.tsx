@@ -4,7 +4,12 @@ import React, { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import { SocketProvider } from "@/lib/socket";
-import { ChatProvider, useChat, type RoomDto } from "@/lib/chat";
+import {
+  ChatProvider,
+  useChat,
+  getRoomDisplayName,
+  formatRoomRelativeTime,
+} from "@/lib/chat";
 import { MOCK_NOTIFICATIONS } from "./_mock";
 import {
   Home,
@@ -241,7 +246,7 @@ function MainLayoutInner({ children }: { children: React.ReactNode }) {
                   color={item.type === "GROUP" ? "gray" : "blue"}
                   time={
                     item.lastMessageAt
-                      ? formatRelativeTime(item.lastMessageAt)
+                      ? formatRoomRelativeTime(item.lastMessageAt)
                       : ""
                   }
                   lastMessage={item.lastMessage?.content}
@@ -295,29 +300,6 @@ function MainLayoutInner({ children }: { children: React.ReactNode }) {
       )}
     </div>
   );
-}
-
-// ── Helpers ──
-
-function getRoomDisplayName(room: RoomDto, myUserId?: string): string {
-  if (room.name) return room.name;
-  if (room.type === "DIRECT") {
-    const peer = room.members.find((m) => m.userId !== myUserId);
-    return peer?.nickname ?? "대화방";
-  }
-  return room.members.map((m) => m.nickname).join(", ");
-}
-
-function formatRelativeTime(isoString: string): string {
-  const diff = Date.now() - new Date(isoString).getTime();
-  const minutes = Math.floor(diff / 60000);
-  if (minutes < 1) return "방금";
-  if (minutes < 60) return `${minutes}분 전`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}시간 전`;
-  const days = Math.floor(hours / 24);
-  if (days === 1) return "어제";
-  return `${days}일 전`;
 }
 
 // ── Main Export ──

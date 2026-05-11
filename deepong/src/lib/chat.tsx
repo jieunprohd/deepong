@@ -57,7 +57,7 @@ interface ChatState {
   rooms: RoomDto[];
   messagesByRoom: Record<string, MessageDto[]>;
   isLoading: boolean;
-  loadRooms: () => Promise<void>;
+  loadRooms: (signal?: AbortSignal) => Promise<void>;
   loadMessages: (roomId: string) => Promise<void>;
   sendMessage: (roomId: string, content: string, tone: string) => Promise<void>;
   editMessage: (
@@ -109,21 +109,34 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   >({});
   const [isLoading, setIsLoading] = useState(false);
 
-  const loadRooms = useCallback(async () => {
-    setIsLoading(true);
-    try {
+  const fetchRoomsList = useCallback(
+    async (signal?: AbortSignal): Promise<RoomDto[]> => {
       const res = await fetch(`${API_BASE}/rooms`, {
         headers: getAuthHeaders(),
+        signal,
       });
-      if (res.ok) {
-        const data = await res.json();
-        // API returns { rooms: RoomDto[], hasNext: boolean }
-        setRooms(data.rooms ?? data);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      return data.rooms ?? data;
+    },
+    [],
+  );
+
+  const loadRooms = useCallback(
+    async (signal?: AbortSignal) => {
+      setIsLoading(true);
+      try {
+        const items = await fetchRoomsList(signal);
+        setRooms(items);
+      } catch (err) {
+        if ((err as Error).name === "AbortError") return;
+        throw err;
+      } finally {
+        setIsLoading(false);
       }
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+    },
+    [fetchRoomsList],
+  );
 
   const loadMessages = useCallback(async (roomId: string) => {
     try {
@@ -319,25 +332,23 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
-    async function fetchInitialRooms() {
-      setIsLoading(true);
+    const controller = new AbortController();
+    (async () => {
       try {
-        const res = await fetch(`${API_BASE}/rooms`, {
-          headers: getAuthHeaders(),
-        });
-        if (res.ok && !cancelled) {
-          const data = await res.json();
-          setRooms(data.rooms ?? data);
-        }
+        const items = await fetchRoomsList(controller.signal);
+        if (cancelled) return;
+        setRooms(items);
+      } catch (err) {
+        if ((err as Error).name === "AbortError") return;
       } finally {
         if (!cancelled) setIsLoading(false);
       }
-    }
-    fetchInitialRooms();
+    })();
     return () => {
       cancelled = true;
+      controller.abort();
     };
-  }, []);
+  }, [fetchRoomsList]);
 
   const value = useMemo<ChatState>(
     () => ({
@@ -365,4 +376,27 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   );
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;
+}
+
+// ── Helpers ──
+
+export function getRoomDisplayName(room: RoomDto, myUserId?: string): string {
+  if (room.name) return room.name;
+  if (room.type === "DIRECT") {
+    const peer = room.members.find((m) => m.userId !== myUserId);
+    return peer?.nickname ?? "대화방";
+  }
+  return room.members.map((m) => m.nickname).join(", ");
+}
+
+export function formatRoomRelativeTime(isoString: string): string {
+  const diff = Date.now() - new Date(isoString).getTime();
+  const minutes = Math.floor(diff / 60000);
+  if (minutes < 1) return "방금";
+  if (minutes < 60) return `${minutes}분 전`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}시간 전`;
+  const days = Math.floor(hours / 24);
+  if (days === 1) return "어제";
+  return `${days}일 전`;
 }
