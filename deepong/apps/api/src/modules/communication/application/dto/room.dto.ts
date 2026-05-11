@@ -33,12 +33,20 @@ export interface RoomMemberView {
   avatarUrl: string | null;
 }
 
+export interface RoomLastMessageView {
+  content: string;
+  tone: string;
+  senderUserId: string;
+  createdAt: string;
+}
+
 export interface RoomView {
   id: string;
   type: string;
   name: string | null;
   defaultTone: string;
   members: RoomMemberView[];
+  lastMessage: RoomLastMessageView | null;
   lastMessageAt: string | null;
   createdAt: string;
 }

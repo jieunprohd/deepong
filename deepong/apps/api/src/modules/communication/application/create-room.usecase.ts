@@ -3,6 +3,7 @@ import { DataSource } from 'typeorm';
 import { Room } from '../domain/room/room.entity';
 import { RoomMember } from '../domain/room/room-member.entity';
 import { RelationshipAcl } from '../infrastructure/acl/relationship.acl';
+import { RoomMemberHydrator } from '../infrastructure/room-member.hydrator';
 import { MessageGateway } from '../interface/message.gateway';
 import { CreateRoomDto, RoomMemberView, RoomView } from './dto/room.dto';
 
@@ -11,6 +12,7 @@ export class CreateRoomUseCase {
   constructor(
     private readonly dataSource: DataSource,
     private readonly relationshipAcl: RelationshipAcl,
+    private readonly memberHydrator: RoomMemberHydrator,
     private readonly gateway: MessageGateway,
   ) {}
 
@@ -27,7 +29,7 @@ export class CreateRoomUseCase {
 
       const existing = await this.findExistingDirectRoom(creatorId, peerId);
       if (existing) {
-        const members = await this.fetchMembers(allMemberIds);
+        const members = await this.memberHydrator.hydrateByUserIds(allMemberIds);
         return this.toView(existing, members);
       }
     }
@@ -48,7 +50,7 @@ export class CreateRoomUseCase {
       await manager.save(RoomMember, members);
     });
 
-    const members = await this.fetchMembers(allMemberIds);
+    const members = await this.memberHydrator.hydrateByUserIds(allMemberIds);
     const view = this.toView(room, members);
     for (const uid of allMemberIds) {
       await this.gateway.joinRoom(uid, room.id);
@@ -83,23 +85,6 @@ export class CreateRoomUseCase {
     return room;
   }
 
-  private async fetchMembers(memberIds: number[]): Promise<RoomMemberView[]> {
-    if (!memberIds.length) return [];
-    const rows = await this.dataSource.query(
-      `SELECT u.ID, u.NICKNAME, u.AVATAR_URL FROM USER u WHERE u.ID IN (?)`,
-      [memberIds],
-    );
-    const byId = new Map<number, { nickname: string; avatarUrl: string | null }>();
-    for (const u of rows) {
-      byId.set(Number(u.ID), { nickname: u.NICKNAME, avatarUrl: u.AVATAR_URL ?? null });
-    }
-    return memberIds.map((uid) => ({
-      userId: String(uid),
-      nickname: byId.get(uid)?.nickname ?? '',
-      avatarUrl: byId.get(uid)?.avatarUrl ?? null,
-    }));
-  }
-
   private toView(room: Room, members: RoomMemberView[]): RoomView {
     return {
       id: String(room.id),
@@ -107,6 +92,7 @@ export class CreateRoomUseCase {
       name: room.name,
       defaultTone: room.defaultTone,
       members,
+      lastMessage: null,
       lastMessageAt: room.lastMessageAt?.toISOString() ?? null,
       createdAt: room.createdAt.toISOString(),
     };

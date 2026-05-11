@@ -14,9 +14,7 @@ const MAX_LIMIT = 100;
  * Catchup Read Model Query
  *
  * Notification(QUEUED + BATCHED + DROPPED 제외) 목록을 사용자별로 모아 피드 형태로 가공.
- * 메시지 본문 / 발신자 정보는 Communication 컨텍스트가 책임지므로
- * 본 Read Model은 Notification 메타데이터만 노출하고
- * 발신자 nickname/userId는 Communication 통합 후 join으로 채운다 (TODO).
+ * 메시지 본문 / 발신자 정보는 Communication 컨텍스트의 ACL을 통해 join으로 hydrate한다.
  */
 @Injectable()
 export class ListCatchupFeedUseCase {
@@ -47,15 +45,18 @@ export class ListCatchupFeedUseCase {
     const sliced = hasNext ? rows.slice(0, limit) : rows;
 
     const messageIds = sliced.map((n) => n.messageId).filter(Boolean);
-    const senderMap = await this.communicationAcl.getSenderInfoByMessageIds(messageIds);
+    const digestMap = await this.communicationAcl.getMessageDigestsByIds(messageIds);
 
     const items: CatchupFeedItem[] = sliced.map((n) => {
-      const sender = senderMap.get(n.messageId);
+      const digest = digestMap.get(n.messageId);
       return {
         notificationId: n.id,
         messageId: n.messageId,
-        senderUserId: sender?.senderUserId ?? null,
-        senderNickname: sender?.senderNickname ?? null,
+        roomId: digest?.roomId ?? null,
+        senderUserId: digest?.senderUserId ?? null,
+        senderNickname: digest?.senderNickname ?? null,
+        content: digest?.content ?? null,
+        contentType: digest?.contentType ?? null,
         tone: n.triggerTone,
         deliveryMethod: n.deliveryMethod,
         scheduledAt: n.scheduledAt?.toISOString() ?? null,

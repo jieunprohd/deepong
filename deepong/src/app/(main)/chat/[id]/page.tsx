@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import { useParams } from "next/navigation";
 import { useAuth } from "@/lib/auth";
-import { useChat, type RoomDto, type MessageDto } from "@/lib/chat";
+import { useChat, getRoomDisplayName, type MessageDto } from "@/lib/chat";
 import { Avatar } from "../../../_components/Avatar";
 import EmptyState from "../../../_components/EmptyState";
 import MessageComposer from "../../../_components/MessageComposer";
@@ -407,15 +407,6 @@ export default function ChatDetailPage() {
 }
 
 // ── Helpers ──
-
-function getRoomDisplayName(room: RoomDto, myUserId?: string): string {
-  if (room.name) return room.name;
-  if (room.type === "DIRECT") {
-    const peer = room.members.find((m) => m.userId !== myUserId);
-    return peer?.nickname ?? "대화방";
-  }
-  return room.members.map((m) => m.nickname).join(", ");
-}
 
 function formatMessageTime(isoString: string): string {
   const date = new Date(isoString);
