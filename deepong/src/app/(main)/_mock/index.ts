@@ -1,8 +1,3 @@
-import type {
-  NotificationItem,
-  NotificationDelivery,
-  NotificationTone,
-} from "@/features/attention/NotificationCenter";
 import type { CatchupItem } from "@/features/catchup/CatchupList";
 import type { ReminderType } from "@/features/catchup/ReminderCard";
 
@@ -47,73 +42,6 @@ export const MOCK_LINKS: LinkItem[] = [
     icon: "📷",
     author: "서연",
     time: "어제",
-  },
-];
-
-/* ─────────────────────────────────────────────────────────
- *  Notifications (Attention 컨텍스트)
- * ───────────────────────────────────────────────────────── */
-export const MOCK_NOTIFICATIONS: NotificationItem[] = [
-  {
-    id: "n1",
-    sender: { name: "민수", color: "amber" },
-    roomName: "민수",
-    preview: "혹시 오늘 저녁 약속 가능해? 지은이랑 같이 보려고",
-    tone: "ask" as NotificationTone,
-    delivery: "immediate" as NotificationDelivery,
-    time: "방금",
-    isRead: false,
-  },
-  {
-    id: "n2",
-    sender: { name: "서연", color: "pink" },
-    roomName: "대학 동기방",
-    preview: "이번 주말 모임 어디서 할까? 강남 / 홍대 / 성수 중에 의견 좀 줘봐",
-    tone: "ask",
-    delivery: "queued",
-    time: "10분 전",
-    isRead: false,
-  },
-  {
-    id: "n3",
-    sender: { name: "팀 딥퐁", color: "blue" },
-    roomName: "공지",
-    preview:
-      "이번 주 집중 시간이 평균 3시간 28분이에요. 지난주보다 24분 늘었어요!",
-    tone: "share",
-    delivery: "batched",
-    time: "1시간 전",
-    isRead: false,
-  },
-  {
-    id: "n4",
-    sender: { name: "지은", color: "green" },
-    roomName: "지은",
-    preview: "회의 끝나고 톡할게!",
-    tone: "chat",
-    delivery: "batched",
-    time: "어제",
-    isRead: true,
-  },
-  {
-    id: "n5",
-    sender: { name: "준호", color: "purple" },
-    roomName: "준호",
-    preview: "이 글 한번 읽어봐 — DHH가 AI 비판한 거",
-    tone: "share",
-    delivery: "queued",
-    time: "2일 전",
-    isRead: true,
-  },
-  {
-    id: "n6",
-    sender: { name: "민수", color: "amber" },
-    roomName: "민수",
-    preview: "내일 회의 시간 미루는 거 가능?",
-    tone: "urgent",
-    delivery: "immediate",
-    time: "3일 전",
-    isRead: true,
   },
 ];
 

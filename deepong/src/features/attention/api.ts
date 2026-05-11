@@ -1,0 +1,72 @@
+import { API_BASE } from "@/lib/config";
+
+export type ToneType = "CHAT" | "ASK" | "URGENT" | "SHARE";
+export type DeliveryMethod =
+  | "IMMEDIATE"
+  | "BATCHED"
+  | "QUEUED"
+  | "IMMEDIATE_QUIET"
+  | "DROPPED";
+export type DeliveryStatus = "PENDING" | "DELIVERED" | "READ";
+
+export interface NotificationResponse {
+  id: number;
+  userId: number;
+  messageId: number;
+  roomId: number | null;
+  roomName: string | null;
+  roomType: string | null;
+  senderUserId: number | null;
+  senderNickname: string | null;
+  content: string | null;
+  contentType: string | null;
+  deliveryMethod: DeliveryMethod;
+  deliveryStatus: DeliveryStatus;
+  triggerTone: ToneType;
+  triggerPresence: string;
+  scheduledAt: string | null;
+  deliveredAt: string | null;
+  createdAt: string;
+}
+
+export interface NotificationListResponse {
+  items: NotificationResponse[];
+  hasNext: boolean;
+  nextCursor: number | null;
+}
+
+function authHeaders(): Record<string, string> {
+  const token = localStorage.getItem("accessToken");
+  return token
+    ? { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }
+    : { "Content-Type": "application/json" };
+}
+
+export async function fetchNotifications(params?: {
+  limit?: number;
+  unreadOnly?: boolean;
+}): Promise<NotificationListResponse> {
+  const url = new URL(`${API_BASE}/notifications`);
+  if (params?.limit) url.searchParams.set("limit", String(params.limit));
+  if (params?.unreadOnly) url.searchParams.set("unreadOnly", "true");
+  const res = await fetch(url.toString(), { headers: authHeaders() });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+export async function markNotificationRead(id: number): Promise<void> {
+  const res = await fetch(`${API_BASE}/notifications/${id}/read`, {
+    method: "PATCH",
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+}
+
+export async function markAllNotificationsRead(): Promise<{ updated: number }> {
+  const res = await fetch(`${API_BASE}/notifications/read-all`, {
+    method: "PATCH",
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
