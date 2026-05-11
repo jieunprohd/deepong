@@ -1,10 +1,30 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { JwtAuthGuard } from '@modules/identity/infrastructure/jwt-auth.guard';
 import { CurrentUser } from '@modules/identity/infrastructure/current-user.decorator';
 import { CreateRoomUseCase } from '../application/create-room.usecase';
 import { GetRoomsUseCase } from '../application/get-rooms.usecase';
 import { GetRoomUseCase } from '../application/get-room.usecase';
-import { CreateRoomDto, GetRoomsQueryDto } from '../application/dto/room.dto';
+import { UpdateRoomUseCase } from '../application/update-room.usecase';
+import { LeaveRoomUseCase } from '../application/leave-room.usecase';
+import { AddRoomMembersUseCase } from '../application/add-room-members.usecase';
+import {
+  AddRoomMembersDto,
+  CreateRoomDto,
+  GetRoomsQueryDto,
+  UpdateRoomDto,
+} from '../application/dto/room.dto';
 
 @Controller('rooms')
 @UseGuards(JwtAuthGuard)
@@ -13,6 +33,9 @@ export class RoomController {
     private readonly createRoomUseCase: CreateRoomUseCase,
     private readonly getRoomsUseCase: GetRoomsUseCase,
     private readonly getRoomUseCase: GetRoomUseCase,
+    private readonly updateRoomUseCase: UpdateRoomUseCase,
+    private readonly leaveRoomUseCase: LeaveRoomUseCase,
+    private readonly addRoomMembersUseCase: AddRoomMembersUseCase,
   ) {}
 
   @Post()
@@ -37,5 +60,32 @@ export class RoomController {
     @Param('id', ParseIntPipe) roomId: number,
   ) {
     return this.getRoomUseCase.execute(user.userId, roomId);
+  }
+
+  @Patch(':id')
+  updateRoom(
+    @CurrentUser() user: { userId: number },
+    @Param('id', ParseIntPipe) roomId: number,
+    @Body() dto: UpdateRoomDto,
+  ) {
+    return this.updateRoomUseCase.execute(user.userId, roomId, dto);
+  }
+
+  @Post(':id/members')
+  addMembers(
+    @CurrentUser() user: { userId: number },
+    @Param('id', ParseIntPipe) roomId: number,
+    @Body() dto: AddRoomMembersDto,
+  ) {
+    return this.addRoomMembersUseCase.execute(user.userId, roomId, dto);
+  }
+
+  @Delete(':id/members/me')
+  @HttpCode(204)
+  async leaveRoom(
+    @CurrentUser() user: { userId: number },
+    @Param('id', ParseIntPipe) roomId: number,
+  ): Promise<void> {
+    await this.leaveRoomUseCase.execute(user.userId, roomId);
   }
 }

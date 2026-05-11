@@ -72,6 +72,12 @@ interface ChatState {
     memberUserIds: number[],
     name?: string,
   ) => Promise<RoomDto | null>;
+  updateRoom: (roomId: string, name: string) => Promise<RoomDto | null>;
+  addRoomMembers: (
+    roomId: string,
+    memberUserIds: number[],
+  ) => Promise<RoomDto | null>;
+  leaveRoom: (roomId: string) => Promise<boolean>;
 }
 
 const ChatContext = createContext<ChatState>({
@@ -84,6 +90,9 @@ const ChatContext = createContext<ChatState>({
   editMessage: async () => null,
   deleteMessage: async () => false,
   createRoom: async () => null,
+  updateRoom: async () => null,
+  addRoomMembers: async () => null,
+  leaveRoom: async () => false,
 });
 
 export function useChat() {
@@ -243,6 +252,56 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     [],
   );
 
+  const updateRoom = useCallback(
+    async (roomId: string, name: string): Promise<RoomDto | null> => {
+      try {
+        const res = await fetch(`${API_BASE}/rooms/${roomId}`, {
+          method: "PATCH",
+          headers: getAuthHeaders(),
+          body: JSON.stringify({ name }),
+        });
+        if (res.ok) return res.json();
+      } catch (err) {
+        console.error("Failed to update room:", err);
+      }
+      return null;
+    },
+    [],
+  );
+
+  const addRoomMembers = useCallback(
+    async (
+      roomId: string,
+      memberUserIds: number[],
+    ): Promise<RoomDto | null> => {
+      try {
+        const res = await fetch(`${API_BASE}/rooms/${roomId}/members`, {
+          method: "POST",
+          headers: getAuthHeaders(),
+          body: JSON.stringify({ memberUserIds }),
+        });
+        if (res.ok) return res.json();
+      } catch (err) {
+        console.error("Failed to add room members:", err);
+      }
+      return null;
+    },
+    [],
+  );
+
+  const leaveRoom = useCallback(async (roomId: string): Promise<boolean> => {
+    try {
+      const res = await fetch(`${API_BASE}/rooms/${roomId}/members/me`, {
+        method: "DELETE",
+        headers: getAuthHeaders(),
+      });
+      return res.ok || res.status === 204;
+    } catch (err) {
+      console.error("Failed to leave room:", err);
+      return false;
+    }
+  }, []);
+
   // ── Socket 이벤트 ──
 
   useEffect(() => {
@@ -315,16 +374,36 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       });
     };
 
+    const handleRoomUpdated = (payload: RoomDto) => {
+      setRooms((prev) =>
+        prev.map((r) => (r.id === payload.id ? { ...r, ...payload } : r)),
+      );
+    };
+
+    const handleRoomLeft = (payload: { roomId: string }) => {
+      setRooms((prev) => prev.filter((r) => r.id !== payload.roomId));
+      setMessagesByRoom((prev) => {
+        if (!(payload.roomId in prev)) return prev;
+        const next = { ...prev };
+        delete next[payload.roomId];
+        return next;
+      });
+    };
+
     socket.on("message:new", handleMessageNew);
     socket.on("message:updated", handleMessageUpdated);
     socket.on("message:deleted", handleMessageDeleted);
     socket.on("room:created", handleRoomCreated);
+    socket.on("room:updated", handleRoomUpdated);
+    socket.on("room:left", handleRoomLeft);
 
     return () => {
       socket.off("message:new", handleMessageNew);
       socket.off("message:updated", handleMessageUpdated);
       socket.off("message:deleted", handleMessageDeleted);
       socket.off("room:created", handleRoomCreated);
+      socket.off("room:updated", handleRoomUpdated);
+      socket.off("room:left", handleRoomLeft);
     };
   }, [socket]);
 
@@ -361,6 +440,9 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       editMessage,
       deleteMessage,
       createRoom,
+      updateRoom,
+      addRoomMembers,
+      leaveRoom,
     }),
     [
       rooms,
@@ -372,6 +454,9 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       editMessage,
       deleteMessage,
       createRoom,
+      updateRoom,
+      addRoomMembers,
+      leaveRoom,
     ],
   );
 

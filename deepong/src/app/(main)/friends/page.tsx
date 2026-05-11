@@ -262,37 +262,56 @@ export default function FriendsPage() {
           <p className="mt-3 text-[13px] text-[#8b95a1]">{searchError}</p>
         )}
 
-        {searchResult && (
-          <div className="mt-3 flex items-center justify-between rounded-lg border border-[#e5e8eb] bg-white p-3">
-            <div className="flex items-center gap-2.5">
-              <Avatar
-                name={searchResult.user.nickname}
-                color="blue"
-                size="sm"
-                profile={searchResult.user.avatarUrl ?? undefined}
-                hover={false}
-              />
-              <div>
-                <p className="text-sm font-semibold text-[#191f28]">
-                  {searchResult.user.nickname}
-                </p>
-                <p className="text-[12px] text-[#8b95a1]">
-                  @{searchResult.user.handle}
-                </p>
+        {searchResult &&
+          (() => {
+            const existingFriend = friends.find(
+              (f) => f.peer.id === searchResult.user.id,
+            );
+            return (
+              <div className="mt-3 flex items-center justify-between rounded-lg border border-[#e5e8eb] bg-white p-3">
+                <div className="flex items-center gap-2.5">
+                  <Avatar
+                    name={searchResult.user.nickname}
+                    color="blue"
+                    size="sm"
+                    profile={searchResult.user.avatarUrl ?? undefined}
+                    hover={false}
+                  />
+                  <div>
+                    <p className="text-sm font-semibold text-[#191f28]">
+                      {searchResult.user.nickname}
+                    </p>
+                    <p className="text-[12px] text-[#8b95a1]">
+                      @{searchResult.user.handle}
+                    </p>
+                  </div>
+                </div>
+                {existingFriend ? (
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={() => handleStartChat(existingFriend)}
+                    disabled={startingChatWith === existingFriend.peer.id}
+                    isLoading={startingChatWith === existingFriend.peer.id}
+                    leftIcon={<MessageSquare size={14} />}
+                  >
+                    대화 시작
+                  </Button>
+                ) : (
+                  <Button
+                    variant="tertiary"
+                    size="sm"
+                    onClick={() => {
+                      setIsInviteOpen(true);
+                    }}
+                    leftIcon={<UserPlus size={14} />}
+                  >
+                    초대 링크 보내기
+                  </Button>
+                )}
               </div>
-            </div>
-            <Button
-              variant="tertiary"
-              size="sm"
-              onClick={() => {
-                setIsInviteOpen(true);
-              }}
-              leftIcon={<UserPlus size={14} />}
-            >
-              초대 링크 보내기
-            </Button>
-          </div>
-        )}
+            );
+          })()}
       </div>
 
       {/* Friends List */}

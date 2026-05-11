@@ -18,6 +18,8 @@ import {
   MessageNewPayload,
   MessageUpdatedPayload,
   RoomCreatedPayload,
+  RoomLeftPayload,
+  RoomUpdatedPayload,
 } from './ws-events.types';
 
 @WebSocketGateway({ namespace: '/ws', cors: true })
@@ -81,6 +83,16 @@ export class MessageGateway
     }
   }
 
+  // ── Helper: 특정 사용자의 소켓을 room 채널에서 제거 (방 나가기 시 호출)
+  async leaveRoom(userId: number, roomId: number): Promise<void> {
+    const sockets = await this.server.fetchSockets();
+    for (const s of sockets) {
+      if ((s.data as { userId?: number }).userId === userId) {
+        await s.leave(`room:${roomId}`);
+      }
+    }
+  }
+
   // ── Server → Client 브로드캐스트 (스펙 5.2) ──────────────────────────
 
   emitMessageNew(roomId: number, payload: MessageNewPayload): void {
@@ -97,6 +109,14 @@ export class MessageGateway
 
   emitRoomCreated(userId: number, payload: RoomCreatedPayload): void {
     this.server.to(`user:${userId}`).emit('room:created', payload);
+  }
+
+  emitRoomUpdated(roomId: number, payload: RoomUpdatedPayload): void {
+    this.server.to(`room:${roomId}`).emit('room:updated', payload);
+  }
+
+  emitRoomLeft(userId: number, payload: RoomLeftPayload): void {
+    this.server.to(`user:${userId}`).emit('room:left', payload);
   }
 
   emitFriendshipEstablished(userId: number, payload: FriendshipEstablishedPayload): void {
