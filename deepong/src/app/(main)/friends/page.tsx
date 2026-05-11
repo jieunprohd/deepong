@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { Avatar } from "@/app/_components/Avatar";
 import { Button } from "@/app/_components/Button";
 import { Modal } from "@/app/_components/Modal";
@@ -20,16 +21,28 @@ import {
   CommunicationNormModal,
   CommunicationNorm,
 } from "@/features/relationship/CommunicationNormModal";
+import { useChat } from "@/lib/chat";
 import { DEFAULT_NORM, MOCK_NORMS } from "../_mock";
-import { UserPlus, Search, X, Bell, Star, Ban } from "lucide-react";
+import {
+  UserPlus,
+  Search,
+  X,
+  Bell,
+  Star,
+  Ban,
+  MessageSquare,
+} from "lucide-react";
 
 export default function FriendsPage() {
+  const router = useRouter();
+  const { createRoom } = useChat();
   const [isInviteOpen, setIsInviteOpen] = useState(false);
   const [friends, setFriends] = useState<FriendItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [hasNext, setHasNext] = useState(false);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [error, setError] = useState(false);
+  const [startingChatWith, setStartingChatWith] = useState<number | null>(null);
 
   // Search state
   const [searchQuery, setSearchQuery] = useState("");
@@ -128,6 +141,20 @@ export default function FriendsPage() {
       setIsDeleting(false);
     }
   }, [deleteTarget]);
+
+  const handleStartChat = useCallback(
+    async (friend: FriendItem) => {
+      if (startingChatWith !== null) return;
+      setStartingChatWith(friend.peer.id);
+      try {
+        const room = await createRoom("DIRECT", [friend.peer.id]);
+        if (room) router.push(`/chat/${room.id}`);
+      } finally {
+        setStartingChatWith(null);
+      }
+    },
+    [createRoom, router, startingChatWith],
+  );
 
   if (isLoading) {
     return (
@@ -299,6 +326,17 @@ export default function FriendsPage() {
                   lastMessage=" "
                 />
                 <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 transition-all group-hover:opacity-100">
+                  <button
+                    onClick={() => handleStartChat(friend)}
+                    disabled={startingChatWith === friend.peer.id}
+                    className="flex h-7 items-center gap-1 rounded-md px-2 text-[11px] font-semibold text-[#2f6bff] transition-all hover:bg-[#eaf0ff] disabled:opacity-50"
+                    title="대화 시작"
+                  >
+                    <MessageSquare size={13} strokeWidth={2.2} />
+                    {startingChatWith === friend.peer.id
+                      ? "이동 중..."
+                      : "대화"}
+                  </button>
                   <button
                     onClick={() => setNormTarget(friend)}
                     className="flex h-7 items-center gap-1 rounded-md px-2 text-[11px] font-semibold text-[#6b7684] transition-all hover:bg-[#f2f4f6] hover:text-[#191f28]"
