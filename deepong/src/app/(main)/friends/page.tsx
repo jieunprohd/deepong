@@ -17,12 +17,15 @@ import type {
   FriendItem,
   SearchUserResponse,
 } from "@/features/invitation/types";
+import { CommunicationNormModal } from "@/features/relationship/CommunicationNormModal";
 import {
-  CommunicationNormModal,
-  CommunicationNorm,
-} from "@/features/relationship/CommunicationNormModal";
+  fetchMyNorms,
+  upsertNorm,
+  DEFAULT_NORM_VALUES,
+  type CommunicationNorm,
+  type UpsertNormInput,
+} from "@/features/relationship/norm-api";
 import { useChat } from "@/lib/chat";
-import { DEFAULT_NORM, MOCK_NORMS } from "../_mock";
 import {
   UserPlus,
   Search,
@@ -58,15 +61,36 @@ export default function FriendsPage() {
 
   // Communication Norm state
   const [normTarget, setNormTarget] = useState<FriendItem | null>(null);
-  const [norms, setNorms] =
-    useState<Record<string, CommunicationNorm>>(MOCK_NORMS);
+  const [normsByFriendUserId, setNormsByFriendUserId] = useState<
+    Record<number, CommunicationNorm>
+  >({});
 
-  const getNormFor = (friendId: number): CommunicationNorm => {
-    return norms[`f${friendId}`] ?? norms[String(friendId)] ?? DEFAULT_NORM;
-  };
+  const buildDefaultNorm = (friend: FriendItem): CommunicationNorm => ({
+    id: 0,
+    ownerUserId: 0,
+    friendUserId: friend.peer.id,
+    defaultTone: DEFAULT_NORM_VALUES.defaultTone!,
+    allowUrgent: DEFAULT_NORM_VALUES.allowUrgent!,
+    shareReadReceipt: DEFAULT_NORM_VALUES.shareReadReceipt!,
+    sharePresence: DEFAULT_NORM_VALUES.sharePresence!,
+    shareWorktime: DEFAULT_NORM_VALUES.shareWorktime!,
+    feedPriority: DEFAULT_NORM_VALUES.feedPriority!,
+    nicknameMemo: DEFAULT_NORM_VALUES.nicknameMemo ?? null,
+    muted: DEFAULT_NORM_VALUES.muted!,
+    isPriorityFriend: false,
+    isMuted: false,
+    updatedAt: new Date().toISOString(),
+  });
 
-  const handleNormSave = (friend: FriendItem, norm: CommunicationNorm) => {
-    setNorms((prev) => ({ ...prev, [`f${friend.id}`]: norm }));
+  const getNormFor = (friend: FriendItem): CommunicationNorm =>
+    normsByFriendUserId[friend.peer.id] ?? buildDefaultNorm(friend);
+
+  const handleNormSave = async (friend: FriendItem, patch: UpsertNormInput) => {
+    const updated = await upsertNorm(friend.peer.id, patch);
+    setNormsByFriendUserId((prev) => ({
+      ...prev,
+      [friend.peer.id]: updated,
+    }));
     setNormTarget(null);
   };
 
@@ -92,6 +116,23 @@ export default function FriendsPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadFriends();
   }, [loadFriends]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchMyNorms()
+      .then((items) => {
+        if (cancelled) return;
+        const map: Record<number, CommunicationNorm> = {};
+        for (const n of items) map[n.friendUserId] = n;
+        setNormsByFriendUserId(map);
+      })
+      .catch(() => {
+        /* norms 로드 실패해도 기본값으로 동작 */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleSearch = useCallback(async () => {
     const trimmed = searchQuery.trim();
@@ -318,7 +359,7 @@ export default function FriendsPage() {
       <div className="flex-1 overflow-y-auto px-6 py-4">
         <div className="flex flex-col gap-1">
           {friends.map((friend) => {
-            const norm = getNormFor(friend.id);
+            const norm = getNormFor(friend);
             return (
               <div key={friend.id} className="group relative">
                 <Avatar
@@ -328,16 +369,16 @@ export default function FriendsPage() {
                   subLabel={
                     <span className="flex items-center gap-1.5 text-[12px] text-[#8b95a1]">
                       @{friend.peer.handle}
-                      {norm.isPriority && (
+                      {norm.isPriorityFriend && (
                         <span className="inline-flex items-center gap-0.5 rounded bg-[var(--warning-light)] px-1.5 py-0.5 text-[10px] font-bold text-[#b06b00]">
                           <Star size={9} strokeWidth={2.5} />
                           우선
                         </span>
                       )}
-                      {norm.isBlocked && (
+                      {norm.isMuted && (
                         <span className="inline-flex items-center gap-0.5 rounded bg-[var(--danger-light)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--danger)]">
                           <Ban size={9} strokeWidth={2.5} />
-                          차단
+                          음소거
                         </span>
                       )}
                     </span>
@@ -409,8 +450,8 @@ export default function FriendsPage() {
             avatarUrl: normTarget.peer.avatarUrl ?? undefined,
             color: "blue",
           }}
-          initialNorm={getNormFor(normTarget.id)}
-          onSave={(norm) => handleNormSave(normTarget, norm)}
+          initialNorm={getNormFor(normTarget)}
+          onSave={(patch) => handleNormSave(normTarget, patch)}
         />
       )}
 

@@ -5,7 +5,6 @@ import type {
 } from "@/features/attention/NotificationCenter";
 import type { CatchupItem } from "@/features/catchup/CatchupList";
 import type { ReminderType } from "@/features/catchup/ReminderCard";
-import type { CommunicationNorm } from "@/features/relationship/CommunicationNormModal";
 
 export interface LinkItem {
   id: string;
@@ -226,60 +225,3 @@ export const MOCK_REMINDERS: MockReminder[] = [
     isCompleted: true,
   },
 ];
-
-/* ─────────────────────────────────────────────────────────
- *  Communication Norms (Relationship 컨텍스트)
- * ───────────────────────────────────────────────────────── */
-export const DEFAULT_NORM: CommunicationNorm = {
-  rules: {
-    chat: "batched",
-    ask: "immediate",
-    urgent: "immediate",
-    share: "batched",
-  },
-  isPriority: false,
-  isBlocked: false,
-};
-
-export const MOCK_NORMS: Record<string, CommunicationNorm> = {
-  f1: {
-    rules: {
-      chat: "batched",
-      ask: "immediate",
-      urgent: "immediate",
-      share: "batched",
-    },
-    isPriority: true,
-    isBlocked: false,
-  },
-  f2: {
-    rules: {
-      chat: "immediate",
-      ask: "immediate",
-      urgent: "immediate",
-      share: "immediate",
-    },
-    isPriority: true,
-    isBlocked: false,
-  },
-  f3: {
-    rules: {
-      chat: "queued",
-      ask: "batched",
-      urgent: "immediate",
-      share: "queued",
-    },
-    isPriority: false,
-    isBlocked: false,
-  },
-  f4: {
-    rules: {
-      chat: "batched",
-      ask: "immediate",
-      urgent: "immediate",
-      share: "batched",
-    },
-    isPriority: false,
-    isBlocked: false,
-  },
-};

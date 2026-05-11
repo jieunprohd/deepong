@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import {
   CommunicationNormModal,
-  CommunicationNorm,
+  type CommunicationNorm,
 } from "./CommunicationNormModal";
 import { Button } from "@/app/_components/Button";
 import { useState } from "react";
@@ -17,20 +17,25 @@ export default meta;
 type Story = StoryObj<typeof CommunicationNormModal>;
 
 const INITIAL_NORM: CommunicationNorm = {
-  rules: {
-    chat: "batched",
-    ask: "immediate",
-    urgent: "immediate",
-    share: "queued",
-  },
-  isPriority: false,
-  isBlocked: false,
+  id: 1,
+  ownerUserId: 100,
+  friendUserId: 200,
+  defaultTone: "CHAT",
+  allowUrgent: true,
+  shareReadReceipt: true,
+  sharePresence: true,
+  shareWorktime: true,
+  feedPriority: "NORMAL",
+  nicknameMemo: null,
+  muted: false,
+  isPriorityFriend: false,
+  isMuted: false,
+  updatedAt: new Date().toISOString(),
 };
 
 export const Default: Story = {
   render: function Render() {
     const [open, setOpen] = useState(false);
-    const [norm, setNorm] = useState(INITIAL_NORM);
     return (
       <>
         <Button onClick={() => setOpen(true)}>알림 규범 열기</Button>
@@ -43,11 +48,8 @@ export const Default: Story = {
             handle: "minsu",
             color: "amber",
           }}
-          initialNorm={norm}
-          onSave={(next) => {
-            setNorm(next);
-            setOpen(false);
-          }}
+          initialNorm={INITIAL_NORM}
+          onSave={() => setOpen(false)}
         />
       </>
     );
