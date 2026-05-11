@@ -35,6 +35,29 @@ export interface NotificationListResponse {
   nextCursor: number | null;
 }
 
+/**
+ * /ws-attention 채널의 'notification:new' 이벤트 페이로드.
+ * 백엔드 NotificationGateway.NotificationNewPayload와 1:1 대응.
+ */
+export interface NotificationNewSocketPayload {
+  id: number;
+  userId: number;
+  messageId: number;
+  roomId: number | null;
+  roomName: string | null;
+  roomType: string | null;
+  senderUserId: number | null;
+  senderNickname: string | null;
+  content: string | null;
+  contentType: string | null;
+  deliveryMethod: DeliveryMethod;
+  triggerTone: ToneType;
+  triggerPresence: "FREE" | "WORKING" | "FOCUS" | "OFF";
+  quiet: boolean;
+  scheduledAt: string | null;
+  createdAt: string;
+}
+
 function authHeaders(): Record<string, string> {
   const token = localStorage.getItem("accessToken");
   return token

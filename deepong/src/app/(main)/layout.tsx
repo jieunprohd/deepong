@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth";
-import { SocketProvider } from "@/lib/socket";
+import { SocketProvider, useSocket } from "@/lib/socket";
 import {
   ChatProvider,
   useChat,
@@ -15,7 +15,9 @@ import {
   markAllNotificationsRead,
   markNotificationRead,
   type NotificationResponse,
+  type NotificationNewSocketPayload,
 } from "@/features/attention/api";
+import { ToastProvider, useToast } from "@/app/_components/Toast";
 import {
   Home,
   MessageSquare,
@@ -43,6 +45,8 @@ import { CreateRoomModal } from "@/features/communication/CreateRoomModal";
 function MainLayoutInner({ children }: { children: React.ReactNode }) {
   const { user, isLoading, isAuthenticated } = useAuth();
   const { rooms } = useChat();
+  const { notificationSocket } = useSocket();
+  const toast = useToast();
   const router = useRouter();
   const pathname = usePathname();
   const selectedId = pathname.startsWith("/chat/")
@@ -100,6 +104,30 @@ function MainLayoutInner({ children }: { children: React.ReactNode }) {
       cancelled = true;
     };
   }, [isAuthenticated]);
+
+  // 실시간 알림 수신: /ws-attention 채널의 'notification:new' 이벤트.
+  useEffect(() => {
+    if (!notificationSocket) return;
+    const handler = (raw: NotificationNewSocketPayload) => {
+      const item = mapSocketNotification(raw);
+      setNotifications((prev) => {
+        // 동일 ID가 이미 있으면 중복 방지 (재연결 시 race)
+        if (prev.some((n) => n.id === item.id)) return prev;
+        return [item, ...prev];
+      });
+      // FOCUS+URGENT는 quiet=true로 와서 toast를 띄우지 않음.
+      if (raw.quiet) return;
+      toast.show({
+        message: `${raw.senderNickname ?? "알림"}: ${truncate(raw.content ?? "", 60)}`,
+        tone: raw.triggerTone === "URGENT" ? "danger" : "info",
+        duration: 4000,
+      });
+    };
+    notificationSocket.on("notification:new", handler);
+    return () => {
+      notificationSocket.off("notification:new", handler);
+    };
+  }, [notificationSocket, toast]);
 
   const handleNotifSelect = (id: string) => {
     setNotifications((prev) =>
@@ -349,6 +377,29 @@ function mapNotification(n: NotificationResponse): NotificationItem {
   };
 }
 
+function mapSocketNotification(
+  n: NotificationNewSocketPayload,
+): NotificationItem {
+  const tone = n.triggerTone.toLowerCase() as NotificationItem["tone"];
+  const delivery: NotificationItem["delivery"] = n.quiet
+    ? "quiet"
+    : (n.deliveryMethod.toLowerCase() as NotificationItem["delivery"]);
+  return {
+    id: String(n.id),
+    sender: { name: n.senderNickname ?? "알 수 없음" },
+    roomName: n.roomName ?? n.senderNickname ?? undefined,
+    preview: n.content ?? "",
+    tone,
+    delivery,
+    time: formatRoomRelativeTime(n.createdAt),
+    isRead: false,
+  };
+}
+
+function truncate(s: string, max: number): string {
+  return s.length <= max ? s : `${s.slice(0, max)}…`;
+}
+
 // ── Main Export ──
 
 export default function MainLayout({
@@ -359,7 +410,9 @@ export default function MainLayout({
   return (
     <SocketProvider>
       <ChatProvider>
-        <MainLayoutInner>{children}</MainLayoutInner>
+        <ToastProvider>
+          <MainLayoutInner>{children}</MainLayoutInner>
+        </ToastProvider>
       </ChatProvider>
     </SocketProvider>
   );

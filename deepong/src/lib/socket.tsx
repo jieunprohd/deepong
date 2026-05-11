@@ -7,11 +7,13 @@ import { API_ORIGIN } from "@/lib/config";
 
 interface SocketState {
   socket: Socket | null;
+  notificationSocket: Socket | null;
   isConnected: boolean;
 }
 
 const SocketContext = createContext<SocketState>({
   socket: null,
+  notificationSocket: null,
   isConnected: false,
 });
 
@@ -22,6 +24,7 @@ export function useSocket() {
 export function SocketProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<SocketState>({
     socket: null,
+    notificationSocket: null,
     isConnected: false,
   });
 
@@ -29,15 +32,20 @@ export function SocketProvider({ children }: { children: ReactNode }) {
     const token = localStorage.getItem("accessToken");
     if (!token) return;
 
-    const s = io(`${API_ORIGIN}/ws`, {
+    const baseOpts = {
       auth: { token },
       transports: ["websocket"],
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionAttempts: 10,
-    });
+    };
 
-    s.on("connect", () => setState({ socket: s, isConnected: true }));
+    const s = io(`${API_ORIGIN}/ws`, baseOpts);
+    const ns = io(`${API_ORIGIN}/ws-attention`, baseOpts);
+
+    s.on("connect", () =>
+      setState((prev) => ({ ...prev, socket: s, isConnected: true })),
+    );
     s.on("disconnect", () =>
       setState((prev) => ({ ...prev, isConnected: false })),
     );
@@ -45,8 +53,13 @@ export function SocketProvider({ children }: { children: ReactNode }) {
       setState((prev) => ({ ...prev, isConnected: false })),
     );
 
+    ns.on("connect", () =>
+      setState((prev) => ({ ...prev, notificationSocket: ns })),
+    );
+
     return () => {
       s.disconnect();
+      ns.disconnect();
     };
   }, []);
 
