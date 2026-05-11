@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/auth";
 import { Button } from "@/app/_components/Button";
 import { ProfileSection } from "@/features/settings/ProfileSection";
 import { WorkspaceSection } from "@/features/settings/WorkspaceSection";
+import { NotificationPreferenceSection } from "@/features/settings/NotificationPreferenceSection";
 import { getMe } from "@/features/settings/api";
 import {
   ProfileDto,
@@ -99,6 +100,7 @@ export default function SettingsPage() {
               );
             }}
           />
+          <NotificationPreferenceSection />
 
           <div className="rounded-2xl border border-[#e5e8eb] bg-white px-6 py-5">
             <h2 className="mb-1 text-[15px] font-semibold text-[#191f28]">

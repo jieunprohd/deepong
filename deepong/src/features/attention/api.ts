@@ -93,3 +93,49 @@ export async function markAllNotificationsRead(): Promise<{ updated: number }> {
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 }
+
+// ── Notification Preference ──
+
+export interface NotificationPreferenceResponse {
+  userId: number;
+  batchIntervalMin: number;
+  allowUrgentInFocus: boolean;
+  soundChat: string | null;
+  soundAsk: string | null;
+  soundUrgent: string | null;
+  soundShare: string | null;
+  osNotification: boolean;
+  inAppToast: boolean;
+  updatedAt: string;
+}
+
+export interface UpdateNotificationPreferenceDto {
+  batchIntervalMin?: number;
+  allowUrgentInFocus?: boolean;
+  soundChat?: string | null;
+  soundAsk?: string | null;
+  soundUrgent?: string | null;
+  soundShare?: string | null;
+  osNotification?: boolean;
+  inAppToast?: boolean;
+}
+
+export async function fetchNotificationPreference(): Promise<NotificationPreferenceResponse> {
+  const res = await fetch(`${API_BASE}/me/notification-preference`, {
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+export async function updateNotificationPreference(
+  dto: UpdateNotificationPreferenceDto,
+): Promise<NotificationPreferenceResponse> {
+  const res = await fetch(`${API_BASE}/me/notification-preference`, {
+    method: "PUT",
+    headers: authHeaders(),
+    body: JSON.stringify(dto),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
