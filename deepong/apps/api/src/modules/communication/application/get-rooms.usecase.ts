@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { DataSource } from 'typeorm';
-import { GetRoomsQueryDto, RoomView } from './dto/room.dto';
+import { GetRoomsQueryDto, RoomMemberView, RoomView } from './dto/room.dto';
 
 const DEFAULT_LIMIT = 20;
 
@@ -30,16 +30,43 @@ export class GetRoomsUseCase {
     const hasNext = rows.length > limit;
     const sliced = hasNext ? rows.slice(0, limit) : rows;
 
+    const roomIds = sliced.map((r: any) => Number(r.ID));
+    const membersByRoom = await this.fetchMembersByRoom(roomIds);
+
     const rooms: RoomView[] = sliced.map((r: any) => ({
       id: String(r.ID),
       type: r.TYPE,
       name: r.NAME,
       defaultTone: r.DEFAULT_TONE,
-      members: [],
+      members: membersByRoom.get(Number(r.ID)) ?? [],
       lastMessageAt: r.LAST_MESSAGE_AT ? new Date(r.LAST_MESSAGE_AT).toISOString() : null,
       createdAt: new Date(r.CREATED_AT).toISOString(),
     }));
 
     return { rooms, hasNext };
+  }
+
+  private async fetchMembersByRoom(roomIds: number[]): Promise<Map<number, RoomMemberView[]>> {
+    if (!roomIds.length) return new Map();
+    const rows = await this.dataSource.query(
+      `SELECT m.ROOM_ID, m.USER_ID, u.NICKNAME, u.AVATAR_URL
+       FROM ROOM_MEMBER m
+       INNER JOIN USER u ON u.ID = m.USER_ID
+       WHERE m.ROOM_ID IN (?) AND m.LEFT_AT IS NULL`,
+      [roomIds],
+    );
+    const map = new Map<number, RoomMemberView[]>();
+    for (const m of rows) {
+      const roomId = Number(m.ROOM_ID);
+      const member: RoomMemberView = {
+        userId: String(m.USER_ID),
+        nickname: m.NICKNAME,
+        avatarUrl: m.AVATAR_URL ?? null,
+      };
+      const list = map.get(roomId) ?? [];
+      list.push(member);
+      map.set(roomId, list);
+    }
+    return map;
   }
 }

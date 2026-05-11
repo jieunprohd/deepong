@@ -4,7 +4,7 @@ import { Room } from '../domain/room/room.entity';
 import { RoomMember } from '../domain/room/room-member.entity';
 import { RelationshipAcl } from '../infrastructure/acl/relationship.acl';
 import { MessageGateway } from '../interface/message.gateway';
-import { CreateRoomDto, RoomView } from './dto/room.dto';
+import { CreateRoomDto, RoomMemberView, RoomView } from './dto/room.dto';
 
 @Injectable()
 export class CreateRoomUseCase {
@@ -26,7 +26,10 @@ export class CreateRoomUseCase {
       if (!friends) throw new ForbiddenException('친구 관계가 아닙니다.');
 
       const existing = await this.findExistingDirectRoom(creatorId, peerId);
-      if (existing) return this.toView(existing, allMemberIds);
+      if (existing) {
+        const members = await this.fetchMembers(allMemberIds);
+        return this.toView(existing, members);
+      }
     }
 
     const room = Room.initialize({
@@ -45,7 +48,8 @@ export class CreateRoomUseCase {
       await manager.save(RoomMember, members);
     });
 
-    const view = this.toView(room, allMemberIds);
+    const members = await this.fetchMembers(allMemberIds);
+    const view = this.toView(room, members);
     for (const uid of allMemberIds) {
       await this.gateway.joinRoom(uid, room.id);
       this.gateway.emitRoomCreated(uid, view);
@@ -79,13 +83,30 @@ export class CreateRoomUseCase {
     return room;
   }
 
-  private toView(room: Room, memberIds: number[]): RoomView {
+  private async fetchMembers(memberIds: number[]): Promise<RoomMemberView[]> {
+    if (!memberIds.length) return [];
+    const rows = await this.dataSource.query(
+      `SELECT u.ID, u.NICKNAME, u.AVATAR_URL FROM USER u WHERE u.ID IN (?)`,
+      [memberIds],
+    );
+    const byId = new Map<number, { nickname: string; avatarUrl: string | null }>();
+    for (const u of rows) {
+      byId.set(Number(u.ID), { nickname: u.NICKNAME, avatarUrl: u.AVATAR_URL ?? null });
+    }
+    return memberIds.map((uid) => ({
+      userId: String(uid),
+      nickname: byId.get(uid)?.nickname ?? '',
+      avatarUrl: byId.get(uid)?.avatarUrl ?? null,
+    }));
+  }
+
+  private toView(room: Room, members: RoomMemberView[]): RoomView {
     return {
       id: String(room.id),
       type: room.type,
       name: room.name,
       defaultTone: room.defaultTone,
-      members: memberIds.map((uid) => ({ userId: String(uid), nickname: '', avatarUrl: null })),
+      members,
       lastMessageAt: room.lastMessageAt?.toISOString() ?? null,
       createdAt: room.createdAt.toISOString(),
     };
