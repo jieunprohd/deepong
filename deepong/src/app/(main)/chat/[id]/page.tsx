@@ -12,6 +12,7 @@ import {
   HandRaisePanel,
   HandRaiseUser,
 } from "@/features/communication/HandRaisePanel";
+import { RoomManageModal } from "@/features/communication/RoomManageModal";
 import {
   Search,
   Info,
@@ -46,6 +47,8 @@ export default function ChatDetailPage() {
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingContent, setEditingContent] = useState("");
+
+  const [isManageOpen, setIsManageOpen] = useState(false);
 
   const [handRaiseState, setHandRaiseState] = useState<
     Record<string, { isRaised: boolean; raisedBy: HandRaiseUser[] }>
@@ -262,7 +265,11 @@ export default function ChatDetailPage() {
               >
                 <Search size={20} strokeWidth={1.8} />
               </button>
-              <button className="flex h-9 w-9 items-center justify-center rounded-lg hover:bg-[#f2f4f6]">
+              <button
+                onClick={() => setIsManageOpen(true)}
+                className="flex h-9 w-9 items-center justify-center rounded-lg hover:bg-[#f2f4f6]"
+                title="대화방 정보"
+              >
                 <Info size={20} strokeWidth={1.8} />
               </button>
               <button className="flex h-9 w-9 items-center justify-center rounded-lg hover:bg-[#f2f4f6]">
@@ -402,6 +409,14 @@ export default function ChatDetailPage() {
       </div>
 
       <MessageComposer tone={tone} onToneChange={setTone} onSend={handleSend} />
+
+      {isManageOpen && (
+        <RoomManageModal
+          isOpen
+          onClose={() => setIsManageOpen(false)}
+          room={currentRoom}
+        />
+      )}
     </div>
   );
 }
