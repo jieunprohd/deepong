@@ -241,7 +241,11 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         const res = await fetch(`${API_BASE}/rooms`, {
           method: "POST",
           headers: getAuthHeaders(),
-          body: JSON.stringify({ type, memberUserIds, name }),
+          body: JSON.stringify({
+            type,
+            memberUserIds: memberUserIds.map((id) => Number(id)),
+            name,
+          }),
         });
         if (res.ok) return res.json();
       } catch (err) {
@@ -278,7 +282,9 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         const res = await fetch(`${API_BASE}/rooms/${roomId}/members`, {
           method: "POST",
           headers: getAuthHeaders(),
-          body: JSON.stringify({ memberUserIds }),
+          body: JSON.stringify({
+            memberUserIds: memberUserIds.map((id) => Number(id)),
+          }),
         });
         if (res.ok) return res.json();
       } catch (err) {
@@ -310,7 +316,13 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     const handleMessageNew = (payload: MessageDto) => {
       setMessagesByRoom((prev) => {
         const existing = prev[payload.roomId] ?? [];
-        if (existing.some((m) => m.clientMessageId === payload.clientMessageId))
+        if (
+          existing.some(
+            (m) =>
+              m.id === payload.id ||
+              m.clientMessageId === payload.clientMessageId,
+          )
+        )
           return prev;
         return { ...prev, [payload.roomId]: [...existing, payload] };
       });
