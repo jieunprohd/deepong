@@ -29,8 +29,11 @@ export class ListCatchupQueryDto {
 export class CatchupFeedItem {
   notificationId!: number;
   messageId!: number;
+  roomId!: number | null;
   senderUserId!: number | null;
   senderNickname!: string | null;
+  content!: string | null;
+  contentType!: string | null;
   tone!: ToneType;
   deliveryMethod!: DeliveryMethod;
   scheduledAt!: string | null;
