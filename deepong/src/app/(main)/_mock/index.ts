@@ -3,7 +3,6 @@ import type {
   NotificationDelivery,
   NotificationTone,
 } from "@/features/attention/NotificationCenter";
-import type { CatchupItem } from "@/features/catchup/CatchupList";
 import type { ReminderType } from "@/features/catchup/ReminderCard";
 import type { CommunicationNorm } from "@/features/relationship/CommunicationNormModal";
 
@@ -115,68 +114,6 @@ export const MOCK_NOTIFICATIONS: NotificationItem[] = [
     delivery: "immediate",
     time: "3일 전",
     isRead: true,
-  },
-];
-
-/* ─────────────────────────────────────────────────────────
- *  Catchup feed (Catchup 컨텍스트)
- * ───────────────────────────────────────────────────────── */
-export const MOCK_CATCHUP: CatchupItem[] = [
-  {
-    id: "c1",
-    type: "ask",
-    author: { name: "민수", color: "amber" },
-    meta: "오늘 중 답장",
-    time: "08:44",
-    primaryActionLabel: "대화 열기",
-    secondaryActionLabel: "읽음 처리",
-    messages: [
-      { text: "물어봄", tone: "ask" },
-      { text: "혹시 오늘 저녁 약속 가능해? 지은이랑 같이 보려고" },
-      { text: "장소는 강남이나 성수 둘 중에 골라줘" },
-    ],
-  },
-  {
-    id: "c2",
-    type: "ask",
-    author: { name: "서연", color: "pink" },
-    meta: "대학 동기방 · 2명 답함",
-    time: "어제 22:10",
-    primaryActionLabel: "대화 열기",
-    messages: [
-      { text: "물어봄", tone: "ask" },
-      {
-        text: "이번 주말 모임 어디서 할까? 강남 / 홍대 / 성수 중에 의견 좀 줘봐",
-      },
-    ],
-  },
-  {
-    id: "c3",
-    type: "chat",
-    author: { name: "민수", color: "amber" },
-    meta: "수다 4건",
-    time: "어제 22:10",
-    primaryActionLabel: "대화 열기",
-    messages: [
-      { text: "수다", tone: "chat" },
-      { text: "오늘 야근인데 미치겠다 ㅋㅋㅋ", time: "어제" },
-      {
-        text: "새 팀장 어떤 것 같냐고 물어봐도 돼? 엄청 빡세 보임",
-        time: "어제",
-      },
-    ],
-  },
-  {
-    id: "c4",
-    type: "share",
-    author: { name: "준호", color: "purple" },
-    meta: "공유 1건",
-    time: "2일 전",
-    primaryActionLabel: "링크 열기",
-    messages: [
-      { text: "공유", tone: "share" },
-      { text: "DHH on Anti-AI Bias — world.hey.com" },
-    ],
   },
 ];
 
