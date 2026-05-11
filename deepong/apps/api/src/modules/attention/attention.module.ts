@@ -19,6 +19,9 @@ import {
 import { EvaluateNotificationUseCase } from './application/evaluate-notification.usecase';
 import { MessageSentHandler } from './application/message-sent.handler';
 import { NotificationPushHandler } from './application/notification-push.handler';
+import { ReleaseNotificationUseCase } from './application/release-notification.usecase';
+import { NotificationReleaseScheduler } from './application/notification-release.scheduler';
+import { PresenceFreedHandler } from './application/presence-freed.handler';
 import { PresenceController } from './interface/presence.controller';
 import { FocusController } from './interface/focus.controller';
 import { NotificationController } from './interface/notification.controller';
@@ -59,6 +62,9 @@ import { RelationshipAcl } from './infrastructure/acl/relationship.acl';
     MessageSentHandler,
     NotificationGateway,
     NotificationPushHandler,
+    ReleaseNotificationUseCase,
+    NotificationReleaseScheduler,
+    PresenceFreedHandler,
   ],
   exports: [EvaluateNotificationUseCase],
 })
