@@ -2,6 +2,7 @@ import {
   OnGatewayConnection,
   OnGatewayDisconnect,
   OnGatewayInit,
+  SubscribeMessage,
   WebSocketGateway,
   WebSocketServer,
 } from '@nestjs/websockets';
@@ -104,5 +105,17 @@ export class MessageGateway
 
   emitFriendshipRemoved(userId: number, payload: FriendshipRemovedPayload): void {
     this.server.to(`user:${userId}`).emit('friendship:removed', payload);
+  }
+
+  @SubscribeMessage('typing:start')
+  handleTypingStart(client: Socket, data: { roomId: number }): void {
+    const userId = client.data.userId as number;
+    client.to(`room:${data.roomId}`).emit('typing:start', { roomId: data.roomId, userId });
+  }
+
+  @SubscribeMessage('typing:stop')
+  handleTypingStop(client: Socket, data: { roomId: number }): void {
+    const userId = client.data.userId as number;
+    client.to(`room:${data.roomId}`).emit('typing:stop', { roomId: data.roomId, userId });
   }
 }

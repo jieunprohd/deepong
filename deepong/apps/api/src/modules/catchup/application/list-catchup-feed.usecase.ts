@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Notification } from '@modules/attention/domain/notification.entity';
+import { CommunicationAcl } from '../infrastructure/acl/communication.acl';
 import {
   CatchupFeedItem,
   CatchupFeedResponse,
@@ -19,6 +20,8 @@ const MAX_LIMIT = 100;
  */
 @Injectable()
 export class ListCatchupFeedUseCase {
+  constructor(private readonly communicationAcl: CommunicationAcl) {}
+
   public async execute(
     userId: number,
     query: ListCatchupQueryDto,
@@ -43,17 +46,23 @@ export class ListCatchupFeedUseCase {
     const hasNext = rows.length > limit;
     const sliced = hasNext ? rows.slice(0, limit) : rows;
 
-    const items: CatchupFeedItem[] = sliced.map((n) => ({
-      notificationId: n.id,
-      messageId: n.messageId,
-      senderUserId: null, // TODO: Communication.MESSAGE.SENDER_USER_ID join
-      senderNickname: null, // TODO: USER nickname join
-      tone: n.triggerTone,
-      deliveryMethod: n.deliveryMethod,
-      scheduledAt: n.scheduledAt?.toISOString() ?? null,
-      isRead: n.deliveryStatus !== 'PENDING',
-      createdAt: n.createdAt.toISOString(),
-    }));
+    const messageIds = sliced.map((n) => n.messageId).filter(Boolean);
+    const senderMap = await this.communicationAcl.getSenderInfoByMessageIds(messageIds);
+
+    const items: CatchupFeedItem[] = sliced.map((n) => {
+      const sender = senderMap.get(n.messageId);
+      return {
+        notificationId: n.id,
+        messageId: n.messageId,
+        senderUserId: sender?.senderUserId ?? null,
+        senderNickname: sender?.senderNickname ?? null,
+        tone: n.triggerTone,
+        deliveryMethod: n.deliveryMethod,
+        scheduledAt: n.scheduledAt?.toISOString() ?? null,
+        isRead: n.deliveryStatus !== 'PENDING',
+        createdAt: n.createdAt.toISOString(),
+      };
+    });
 
     const stats = await this.computeStats(userId);
 

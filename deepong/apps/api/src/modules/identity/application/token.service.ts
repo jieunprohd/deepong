@@ -32,14 +32,21 @@ export class TokenService {
 
     public generateAccessToken(payload: AccessTokenPayload): string {
         return jwt.sign(
-            {userId: payload.userId, email: payload.email},
+            { userId: payload.userId, email: payload.email, jti: payload.jti },
             this.jwtSecret,
-            {expiresIn: this.accessExpiresIn as jwt.SignOptions['expiresIn']},
+            { expiresIn: this.accessExpiresIn as jwt.SignOptions['expiresIn'] },
         );
     }
 
     public verifyAccessToken(token: string): AccessTokenPayload {
         return jwt.verify(token, this.jwtSecret) as unknown as AccessTokenPayload;
+    }
+
+    public getAccessTokenTtlSeconds(): number {
+        const raw = this.accessExpiresIn;
+        if (raw.endsWith('m')) return parseInt(raw) * 60;
+        if (raw.endsWith('h')) return parseInt(raw) * 3600;
+        return 900;
     }
 
     public hashToken(token: string): string {
