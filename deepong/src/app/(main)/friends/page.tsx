@@ -157,6 +157,7 @@ export default function FriendsPage() {
   }, [searchQuery]);
 
   const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.nativeEvent.isComposing || e.keyCode === 229) return;
     if (e.key === "Enter") {
       handleSearch();
     }
