@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Notification } from '../domain/notification.entity';
+import { CommunicationAcl } from '../infrastructure/acl/communication.acl';
 import {
   ListNotificationsQueryDto,
   NotificationListResponse,
@@ -11,6 +12,8 @@ const MAX_LIMIT = 100;
 
 @Injectable()
 export class ListNotificationsUseCase {
+  constructor(private readonly communicationAcl: CommunicationAcl) {}
+
   public async execute(
     userId: number,
     query: ListNotificationsQueryDto,
@@ -37,8 +40,24 @@ export class ListNotificationsUseCase {
     const hasNext = rows.length > limit;
     const items = hasNext ? rows.slice(0, limit) : rows;
 
+    const messageIds = items.map((n) => n.messageId).filter(Boolean);
+    const digestMap = await this.communicationAcl.getDigestsByMessageIds(messageIds);
+
     return {
-      items: items.map((n) => NotificationResponse.from(n)),
+      items: items.map((n) => {
+        const r = NotificationResponse.from(n);
+        const digest = digestMap.get(n.messageId);
+        if (digest) {
+          r.roomId = digest.roomId;
+          r.roomName = digest.roomName;
+          r.roomType = digest.roomType;
+          r.senderUserId = digest.senderUserId;
+          r.senderNickname = digest.senderNickname;
+          r.content = digest.content;
+          r.contentType = digest.contentType;
+        }
+        return r;
+      }),
       hasNext,
       nextCursor: hasNext ? items[items.length - 1].id : null,
     };

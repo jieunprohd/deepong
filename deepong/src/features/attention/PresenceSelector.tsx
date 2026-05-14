@@ -200,6 +200,7 @@ export const PresenceSelector: React.FC<PresenceSelectorProps> = ({
                 onChange={(e) => setDraftMessage(e.target.value)}
                 onBlur={handleMessageBlur}
                 onKeyDown={(e) => {
+                  if (e.nativeEvent.isComposing || e.keyCode === 229) return;
                   if (e.key === "Enter") {
                     handleMessageBlur();
                     setIsOpen(false);

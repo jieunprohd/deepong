@@ -31,6 +31,13 @@ export class NotificationResponse {
   id!: number;
   userId!: number;
   messageId!: number;
+  roomId!: number | null;
+  roomName!: string | null;
+  roomType!: string | null;
+  senderUserId!: number | null;
+  senderNickname!: string | null;
+  content!: string | null;
+  contentType!: string | null;
   deliveryMethod!: DeliveryMethod;
   deliveryStatus!: NotificationDeliveryStatus;
   triggerTone!: ToneType;
@@ -44,6 +51,13 @@ export class NotificationResponse {
     r.id = n.id;
     r.userId = n.userId;
     r.messageId = n.messageId;
+    r.roomId = null;
+    r.roomName = null;
+    r.roomType = null;
+    r.senderUserId = null;
+    r.senderNickname = null;
+    r.content = null;
+    r.contentType = null;
     r.deliveryMethod = n.deliveryMethod;
     r.deliveryStatus = n.deliveryStatus;
     r.triggerTone = n.triggerTone;

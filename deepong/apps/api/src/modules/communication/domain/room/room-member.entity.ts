@@ -1,4 +1,6 @@
-import { BaseEntity, Column, CreateDateColumn, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { BaseEntity, Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+
+export type MemberRole = 'ADMIN' | 'MEMBER';
 
 @Entity('ROOM_MEMBER')
 export class RoomMember extends BaseEntity {
@@ -11,9 +13,22 @@ export class RoomMember extends BaseEntity {
   @Column({ type: 'bigint', unsigned: true })
   userId!: number;
 
-  @CreateDateColumn()
+  @Column({ type: 'enum', enum: ['ADMIN', 'MEMBER'], default: 'MEMBER' })
+  role!: MemberRole;
+
+  @Column({ type: 'datetime' })
   joinedAt!: Date;
 
   @Column({ type: 'datetime', nullable: true })
   leftAt!: Date | null;
+
+  static initialize(roomId: number, userId: number, role: MemberRole = 'MEMBER'): RoomMember {
+    const m = new RoomMember();
+    m.roomId = roomId;
+    m.userId = userId;
+    m.role = role;
+    m.joinedAt = new Date();
+    m.leftAt = null;
+    return m;
+  }
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { Avatar } from "@/app/_components/Avatar";
 import { Button } from "@/app/_components/Button";
 import { Modal } from "@/app/_components/Modal";
@@ -16,20 +17,35 @@ import type {
   FriendItem,
   SearchUserResponse,
 } from "@/features/invitation/types";
+import { CommunicationNormModal } from "@/features/relationship/CommunicationNormModal";
 import {
-  CommunicationNormModal,
-  CommunicationNorm,
-} from "@/features/relationship/CommunicationNormModal";
-import { DEFAULT_NORM, MOCK_NORMS } from "../_mock";
-import { UserPlus, Search, X, Bell, Star, Ban } from "lucide-react";
+  fetchMyNorms,
+  upsertNorm,
+  DEFAULT_NORM_VALUES,
+  type CommunicationNorm,
+  type UpsertNormInput,
+} from "@/features/relationship/norm-api";
+import { useChat } from "@/lib/chat";
+import {
+  UserPlus,
+  Search,
+  X,
+  Bell,
+  Star,
+  Ban,
+  MessageSquare,
+} from "lucide-react";
 
 export default function FriendsPage() {
+  const router = useRouter();
+  const { createRoom } = useChat();
   const [isInviteOpen, setIsInviteOpen] = useState(false);
   const [friends, setFriends] = useState<FriendItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [hasNext, setHasNext] = useState(false);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [error, setError] = useState(false);
+  const [startingChatWith, setStartingChatWith] = useState<number | null>(null);
 
   // Search state
   const [searchQuery, setSearchQuery] = useState("");
@@ -45,15 +61,36 @@ export default function FriendsPage() {
 
   // Communication Norm state
   const [normTarget, setNormTarget] = useState<FriendItem | null>(null);
-  const [norms, setNorms] =
-    useState<Record<string, CommunicationNorm>>(MOCK_NORMS);
+  const [normsByFriendUserId, setNormsByFriendUserId] = useState<
+    Record<number, CommunicationNorm>
+  >({});
 
-  const getNormFor = (friendId: number): CommunicationNorm => {
-    return norms[`f${friendId}`] ?? norms[String(friendId)] ?? DEFAULT_NORM;
-  };
+  const buildDefaultNorm = (friend: FriendItem): CommunicationNorm => ({
+    id: 0,
+    ownerUserId: 0,
+    friendUserId: friend.peer.id,
+    defaultTone: DEFAULT_NORM_VALUES.defaultTone!,
+    allowUrgent: DEFAULT_NORM_VALUES.allowUrgent!,
+    shareReadReceipt: DEFAULT_NORM_VALUES.shareReadReceipt!,
+    sharePresence: DEFAULT_NORM_VALUES.sharePresence!,
+    shareWorktime: DEFAULT_NORM_VALUES.shareWorktime!,
+    feedPriority: DEFAULT_NORM_VALUES.feedPriority!,
+    nicknameMemo: DEFAULT_NORM_VALUES.nicknameMemo ?? null,
+    muted: DEFAULT_NORM_VALUES.muted!,
+    isPriorityFriend: false,
+    isMuted: false,
+    updatedAt: new Date().toISOString(),
+  });
 
-  const handleNormSave = (friend: FriendItem, norm: CommunicationNorm) => {
-    setNorms((prev) => ({ ...prev, [`f${friend.id}`]: norm }));
+  const getNormFor = (friend: FriendItem): CommunicationNorm =>
+    normsByFriendUserId[friend.peer.id] ?? buildDefaultNorm(friend);
+
+  const handleNormSave = async (friend: FriendItem, patch: UpsertNormInput) => {
+    const updated = await upsertNorm(friend.peer.id, patch);
+    setNormsByFriendUserId((prev) => ({
+      ...prev,
+      [friend.peer.id]: updated,
+    }));
     setNormTarget(null);
   };
 
@@ -80,6 +117,23 @@ export default function FriendsPage() {
     loadFriends();
   }, [loadFriends]);
 
+  useEffect(() => {
+    let cancelled = false;
+    fetchMyNorms()
+      .then((items) => {
+        if (cancelled) return;
+        const map: Record<number, CommunicationNorm> = {};
+        for (const n of items) map[n.friendUserId] = n;
+        setNormsByFriendUserId(map);
+      })
+      .catch(() => {
+        /* norms 로드 실패해도 기본값으로 동작 */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const handleSearch = useCallback(async () => {
     const trimmed = searchQuery.trim();
     if (!trimmed) return;
@@ -103,6 +157,7 @@ export default function FriendsPage() {
   }, [searchQuery]);
 
   const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.nativeEvent.isComposing || e.keyCode === 229) return;
     if (e.key === "Enter") {
       handleSearch();
     }
@@ -128,6 +183,20 @@ export default function FriendsPage() {
       setIsDeleting(false);
     }
   }, [deleteTarget]);
+
+  const handleStartChat = useCallback(
+    async (friend: FriendItem) => {
+      if (startingChatWith !== null) return;
+      setStartingChatWith(friend.peer.id);
+      try {
+        const room = await createRoom("DIRECT", [friend.peer.id]);
+        if (room) router.push(`/chat/${room.id}`);
+      } finally {
+        setStartingChatWith(null);
+      }
+    },
+    [createRoom, router, startingChatWith],
+  );
 
   if (isLoading) {
     return (
@@ -235,44 +304,63 @@ export default function FriendsPage() {
           <p className="mt-3 text-[13px] text-[#8b95a1]">{searchError}</p>
         )}
 
-        {searchResult && (
-          <div className="mt-3 flex items-center justify-between rounded-lg border border-[#e5e8eb] bg-white p-3">
-            <div className="flex items-center gap-2.5">
-              <Avatar
-                name={searchResult.user.nickname}
-                color="blue"
-                size="sm"
-                profile={searchResult.user.avatarUrl ?? undefined}
-                hover={false}
-              />
-              <div>
-                <p className="text-sm font-semibold text-[#191f28]">
-                  {searchResult.user.nickname}
-                </p>
-                <p className="text-[12px] text-[#8b95a1]">
-                  @{searchResult.user.handle}
-                </p>
+        {searchResult &&
+          (() => {
+            const existingFriend = friends.find(
+              (f) => f.peer.id === searchResult.user.id,
+            );
+            return (
+              <div className="mt-3 flex items-center justify-between rounded-lg border border-[#e5e8eb] bg-white p-3">
+                <div className="flex items-center gap-2.5">
+                  <Avatar
+                    name={searchResult.user.nickname}
+                    color="blue"
+                    size="sm"
+                    profile={searchResult.user.avatarUrl ?? undefined}
+                    hover={false}
+                  />
+                  <div>
+                    <p className="text-sm font-semibold text-[#191f28]">
+                      {searchResult.user.nickname}
+                    </p>
+                    <p className="text-[12px] text-[#8b95a1]">
+                      @{searchResult.user.handle}
+                    </p>
+                  </div>
+                </div>
+                {existingFriend ? (
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={() => handleStartChat(existingFriend)}
+                    disabled={startingChatWith === existingFriend.peer.id}
+                    isLoading={startingChatWith === existingFriend.peer.id}
+                    leftIcon={<MessageSquare size={14} />}
+                  >
+                    대화 시작
+                  </Button>
+                ) : (
+                  <Button
+                    variant="tertiary"
+                    size="sm"
+                    onClick={() => {
+                      setIsInviteOpen(true);
+                    }}
+                    leftIcon={<UserPlus size={14} />}
+                  >
+                    초대 링크 보내기
+                  </Button>
+                )}
               </div>
-            </div>
-            <Button
-              variant="tertiary"
-              size="sm"
-              onClick={() => {
-                setIsInviteOpen(true);
-              }}
-              leftIcon={<UserPlus size={14} />}
-            >
-              초대 링크 보내기
-            </Button>
-          </div>
-        )}
+            );
+          })()}
       </div>
 
       {/* Friends List */}
       <div className="flex-1 overflow-y-auto px-6 py-4">
         <div className="flex flex-col gap-1">
           {friends.map((friend) => {
-            const norm = getNormFor(friend.id);
+            const norm = getNormFor(friend);
             return (
               <div key={friend.id} className="group relative">
                 <Avatar
@@ -282,16 +370,16 @@ export default function FriendsPage() {
                   subLabel={
                     <span className="flex items-center gap-1.5 text-[12px] text-[#8b95a1]">
                       @{friend.peer.handle}
-                      {norm.isPriority && (
+                      {norm.isPriorityFriend && (
                         <span className="inline-flex items-center gap-0.5 rounded bg-[var(--warning-light)] px-1.5 py-0.5 text-[10px] font-bold text-[#b06b00]">
                           <Star size={9} strokeWidth={2.5} />
                           우선
                         </span>
                       )}
-                      {norm.isBlocked && (
+                      {norm.isMuted && (
                         <span className="inline-flex items-center gap-0.5 rounded bg-[var(--danger-light)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--danger)]">
                           <Ban size={9} strokeWidth={2.5} />
-                          차단
+                          음소거
                         </span>
                       )}
                     </span>
@@ -299,6 +387,17 @@ export default function FriendsPage() {
                   lastMessage=" "
                 />
                 <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 transition-all group-hover:opacity-100">
+                  <button
+                    onClick={() => handleStartChat(friend)}
+                    disabled={startingChatWith === friend.peer.id}
+                    className="flex h-7 items-center gap-1 rounded-md px-2 text-[11px] font-semibold text-[#2f6bff] transition-all hover:bg-[#eaf0ff] disabled:opacity-50"
+                    title="대화 시작"
+                  >
+                    <MessageSquare size={13} strokeWidth={2.2} />
+                    {startingChatWith === friend.peer.id
+                      ? "이동 중..."
+                      : "대화"}
+                  </button>
                   <button
                     onClick={() => setNormTarget(friend)}
                     className="flex h-7 items-center gap-1 rounded-md px-2 text-[11px] font-semibold text-[#6b7684] transition-all hover:bg-[#f2f4f6] hover:text-[#191f28]"
@@ -352,8 +451,8 @@ export default function FriendsPage() {
             avatarUrl: normTarget.peer.avatarUrl ?? undefined,
             color: "blue",
           }}
-          initialNorm={getNormFor(normTarget.id)}
-          onSave={(norm) => handleNormSave(normTarget, norm)}
+          initialNorm={getNormFor(normTarget)}
+          onSave={(patch) => handleNormSave(normTarget, patch)}
         />
       )}
 

@@ -57,13 +57,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   const logout = useCallback(() => {
+    const accessToken = localStorage.getItem("accessToken");
     const refreshToken = localStorage.getItem("refreshToken");
 
-    if (refreshToken) {
+    if (accessToken) {
       fetch(`${API_BASE}/auth/logout`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ refreshToken }),
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: refreshToken ? JSON.stringify({ refreshToken }) : undefined,
       }).catch(() => {});
     }
 

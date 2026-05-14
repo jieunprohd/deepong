@@ -2,6 +2,7 @@ import {Column, CreateDateColumn, DeleteDateColumn, Entity, PrimaryGeneratedColu
 import {AggregateRoot} from '@shared/types/aggregate-root.base';
 import {Handle} from './handle.vo';
 import {UserSignedUpEvent} from './events/user-signed-up.event';
+import {UpdateProfileDto} from '../application/dto/update-profile.dto';
 
 @Entity('USER')
 export class User extends AggregateRoot {
@@ -111,5 +112,13 @@ export class User extends AggregateRoot {
             new UserSignedUpEvent(user.id ?? 0, user.email),
         );
         return user;
+    }
+
+    public updateUserInfo(request: UpdateProfileDto) {
+        if (request.nickname) this.nickname = request.nickname;
+        if (request.bio) this.bio = request.bio ?? null;
+        if (request.avatarUrl) this.avatarUrl = request.avatarUrl ?? null;
+        if (request.timezone) this.timezone = request.timezone;
+        return this;
     }
 }

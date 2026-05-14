@@ -21,6 +21,7 @@ import { PresenceController } from './interface/presence.controller';
 import { FocusController } from './interface/focus.controller';
 import { NotificationController } from './interface/notification.controller';
 import { NotificationPreferenceController } from './interface/notification-preference.controller';
+import { CommunicationAcl } from './infrastructure/acl/communication.acl';
 
 @Module({
   imports: [
@@ -49,6 +50,7 @@ import { NotificationPreferenceController } from './interface/notification-prefe
     GetNotificationPreferenceUseCase,
     UpdateNotificationPreferenceUseCase,
     EvaluateNotificationUseCase,
+    CommunicationAcl,
   ],
   exports: [EvaluateNotificationUseCase],
 })
