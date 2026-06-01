@@ -34,10 +34,7 @@ import {
   NotificationCenter,
   NotificationItem,
 } from "@/features/attention/NotificationCenter";
-import {
-  PresenceSelector,
-  Presence,
-} from "@/features/attention/PresenceSelector";
+import { Presence } from "@/features/attention/PresenceSelector";
 import { CreateRoomModal } from "@/features/communication/CreateRoomModal";
 
 function MainLayoutInner({ children }: { children: React.ReactNode }) {
@@ -53,9 +50,8 @@ function MainLayoutInner({ children }: { children: React.ReactNode }) {
   const [isCreateRoomOpen, setIsCreateRoomOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const unreadCount = notifications.filter((n) => !n.isRead).length;
-  const [presence, setPresence] = useState<Presence>("focus");
-  const [statusMessage, setStatusMessage] =
-    useState<string>("집중 중 — 오후 4:00까지");
+  // 프레즌스 (사이드바 하단 아바타)
+  const [presence] = useState<Presence>("focus");
 
   const {
     width: chatListWidth,
@@ -179,25 +175,14 @@ function MainLayoutInner({ children }: { children: React.ReactNode }) {
             >
               <Settings size={22} strokeWidth={1.8} />
             </button>
-            <div className="relative">
-              <Avatar
-                name={user?.nickname || "O"}
-                profile={user?.avatarUrl ?? undefined}
-                size="lg"
-                presence={presence}
-                color="blue"
-                hover={false}
-              />
-              <div className="absolute -right-1 -bottom-1">
-                <PresenceSelector
-                  compact
-                  value={presence}
-                  onChange={setPresence}
-                  statusMessage={statusMessage}
-                  onStatusMessageChange={setStatusMessage}
-                />
-              </div>
-            </div>
+            <Avatar
+              name={user?.nickname || "O"}
+              profile={user?.avatarUrl ?? undefined}
+              size="lg"
+              presence={presence}
+              color="blue"
+              hover={false}
+            />
           </div>
         </aside>
 
