@@ -1,6 +1,6 @@
 import type { ReminderType } from "@/features/catchup/ReminderCard";
 
-export interface LinkItem {
+interface LinkItem {
   id: string;
   chatId: string;
   title: string;
