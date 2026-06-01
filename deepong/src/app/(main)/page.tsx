@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
-import { MOCK_LINKS, MOCK_REMINDERS, MockReminder } from "./_mock";
+import { MOCK_LINKS, MOCK_REMINDERS, MockReminder } from "./_mocks";
 import Chip from "../_components/Chip";
 import EmptyState from "../_components/EmptyState";
 import { Card } from "../_components/Card";
